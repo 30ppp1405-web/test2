@@ -33,7 +33,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// ─── In-Memory Store ──────────────────────────────────────────────────────────
 const store = {
   agents: [
     { id: uuidv4(), name: 'Alice', email: 'alice@demo.com', password: bcrypt.hashSync('demo123', 10), avatar: 'A', color: '#6366f1', online: false },
@@ -41,40 +40,24 @@ const store = {
   ],
   conversations: new Map(),
   visitors: new Map(),
-  agentSockets: new Map(),   // agentId -> socketId
-  visitorSockets: new Map(), // visitorId -> socketId
+  agentSockets: new Map(),
+  visitorSockets: new Map(),
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function createConversation(visitorId, visitorInfo) {
   const id = uuidv4();
-  const conv = {
-    id,
-    visitorId,
-    visitorInfo,
-    messages: [],
-    status: 'open',        // open | resolved
-    assignedTo: null,
-    unreadByAgent: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  const conv = { id, visitorId, visitorInfo, messages: [], status: 'open', assignedTo: null, unreadByAgent: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   store.conversations.set(id, conv);
   return conv;
 }
 
 function broadcastToAgents(event, data) {
-  store.agentSockets.forEach((socketId) => {
-    io.to(socketId).emit(event, data);
-  });
+  store.agentSockets.forEach((socketId) => io.to(socketId).emit(event, data));
 }
 
 function getPublicConversations() {
   return Array.from(store.conversations.values())
-    .map(c => ({
-      ...c,
-      messages: c.messages.slice(-1), // last message preview
-    }))
+    .map(c => ({ ...c, messages: c.messages.slice(-1) }))
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 }
 
@@ -82,7 +65,6 @@ function verifyToken(token) {
   try { return jwt.verify(token, JWT_SECRET); } catch { return null; }
 }
 
-// ─── REST API ─────────────────────────────────────────────────────────────────
 app.post('/api/agent/login', (req, res) => {
   const { email, password } = req.body;
   const agent = store.agents.find(a => a.email === email);
@@ -117,9 +99,7 @@ app.get('/api/agents/online', (req, res) => {
   res.json({ online: onlineAgents.length > 0, agents: onlineAgents });
 });
 
-// ─── Socket.io ───────────────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  // ── Agent events ──
   socket.on('agent:join', ({ token }) => {
     const payload = verifyToken(token);
     if (!payload) return socket.emit('error', 'Unauthorized');
@@ -139,20 +119,7 @@ io.on('connection', (socket) => {
     const conv = store.conversations.get(conversationId);
     if (!conv) return;
     const agent = store.agents.find(a => a.id === socket.agentId);
-    const msg = {
-      id: uuidv4(),
-      conversationId,
-      from: 'agent',
-      agentId: socket.agentId,
-      agentName: agent?.name || 'Agent',
-      agentAvatar: agent?.avatar || 'A',
-      agentColor: agent?.color || '#6366f1',
-      text: text || '',
-      fileUrl: fileUrl || null,
-      fileName: fileName || null,
-      timestamp: new Date().toISOString(),
-      seen: false,
-    };
+    const msg = { id: uuidv4(), conversationId, from: 'agent', agentId: socket.agentId, agentName: agent?.name || 'Agent', agentAvatar: agent?.avatar || 'A', agentColor: agent?.color || '#6366f1', text: text || '', fileUrl: fileUrl || null, fileName: fileName || null, timestamp: new Date().toISOString(), seen: false };
     conv.messages.push(msg);
     conv.updatedAt = msg.timestamp;
     conv.assignedTo = conv.assignedTo || socket.agentId;
@@ -197,7 +164,6 @@ io.on('connection', (socket) => {
     broadcastToAgents('conversations:list', getPublicConversations());
   });
 
-  // ── Visitor events ──
   socket.on('visitor:init', ({ visitorId, name, email, page }) => {
     let visitorId_ = visitorId || uuidv4();
     let visitor = store.visitors.get(visitorId_);
@@ -226,17 +192,7 @@ io.on('connection', (socket) => {
     if (!visitor?.conversationId) return;
     const conv = store.conversations.get(visitor.conversationId);
     if (!conv) return;
-    const msg = {
-      id: uuidv4(),
-      conversationId: conv.id,
-      from: 'visitor',
-      visitorName: visitor.name,
-      text: text || '',
-      fileUrl: fileUrl || null,
-      fileName: fileName || null,
-      timestamp: new Date().toISOString(),
-      seen: false,
-    };
+    const msg = { id: uuidv4(), conversationId: conv.id, from: 'visitor', visitorName: visitor.name, text: text || '', fileUrl: fileUrl || null, fileName: fileName || null, timestamp: new Date().toISOString(), seen: false };
     conv.messages.push(msg);
     conv.updatedAt = msg.timestamp;
     conv.unreadByAgent += 1;
@@ -252,7 +208,6 @@ io.on('connection', (socket) => {
     broadcastToAgents('visitor:typing', { conversationId: visitor.conversationId, typing, visitorName: visitor.name });
   });
 
-  // ── Disconnect ──
   socket.on('disconnect', () => {
     if (socket.agentId) {
       const agent = store.agents.find(a => a.id === socket.agentId);
@@ -260,9 +215,7 @@ io.on('connection', (socket) => {
       store.agentSockets.delete(socket.agentId);
       broadcastToAgents('agent:offline', { agentId: socket.agentId });
     }
-    if (socket.visitorId) {
-      store.visitorSockets.delete(socket.visitorId);
-    }
+    if (socket.visitorId) store.visitorSockets.delete(socket.visitorId);
   });
 });
 
