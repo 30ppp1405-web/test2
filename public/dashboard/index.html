@@ -4,385 +4,193 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>LiveChat — Agent Dashboard</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0f172a; --sidebar-bg: #1e293b; --card-bg: #1e293b;
-    --input-bg: #0f172a; --border: #334155; --primary: #6366f1;
-    --primary-hover: #4f46e5; --success: #10b981; --danger: #ef4444;
-    --warn: #f59e0b; --text: #f1f5f9; --muted: #94a3b8;
+    --bg: #0f172a; --sidebar-bg: #1e293b; --card-bg: #1e293b; --input-bg: #0f172a;
+    --border: #334155; --primary: #6366f1; --primary-hover: #4f46e5;
+    --success: #10b981; --danger: #ef4444; --text: #f1f5f9; --muted: #94a3b8;
     --bubble-agent: #6366f1; --bubble-visitor: #334155;
-    --radius: 12px; --radius-sm: 8px;
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); }
-
-  /* ── Login ── */
-  #login-screen {
-    display: flex; align-items: center; justify-content: center;
-    height: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-  }
-  .login-box {
-    background: var(--card-bg); border: 1px solid var(--border);
-    border-radius: 20px; padding: 48px 40px; width: 400px; text-align: center;
-    box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-  }
+  #login-screen { display: flex; align-items: center; justify-content: center; height: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); }
+  .login-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 20px; padding: 48px 40px; width: 400px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
   .login-logo { font-size: 48px; margin-bottom: 8px; }
-  .login-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .login-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
   .login-subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
   .form-group { text-align: left; margin-bottom: 16px; }
   .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
-  .form-group input {
-    width: 100%; padding: 12px 16px; background: var(--input-bg);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    color: var(--text); font-size: 14px; outline: none; transition: border-color .2s;
-  }
+  .form-group input { width: 100%; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; outline: none; transition: border-color .2s; }
   .form-group input:focus { border-color: var(--primary); }
-  .btn-primary {
-    width: 100%; padding: 13px; background: var(--primary); color: #fff;
-    border: none; border-radius: var(--radius-sm); font-size: 15px;
-    font-weight: 600; cursor: pointer; transition: background .2s; margin-top: 8px;
-  }
+  .btn-primary { width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .2s; margin-top: 8px; }
   .btn-primary:hover { background: var(--primary-hover); }
   .login-hint { margin-top: 20px; font-size: 12px; color: var(--muted); background: rgba(99,102,241,.1); border-radius: 8px; padding: 12px; }
   .login-hint strong { color: var(--primary); }
   .error-msg { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
-
-  /* ── App Layout ── */
   #app { display: none; height: 100%; }
   .layout { display: flex; height: 100%; }
-
-  /* ── Sidebar ── */
-  .sidebar {
-    width: 300px; background: var(--sidebar-bg); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; flex-shrink: 0;
-  }
-  .sidebar-header {
-    padding: 20px 16px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px;
-  }
+  .sidebar { width: 300px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-header { padding: 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
   .brand { display: flex; align-items: center; gap: 8px; flex: 1; }
   .brand-icon { font-size: 24px; }
-  .brand-name { font-size: 18px; font-weight: 700; color: var(--text); }
+  .brand-name { font-size: 18px; font-weight: 700; }
   .brand-badge { font-size: 10px; background: var(--primary); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
-  .agent-avatar {
-    width: 36px; height: 36px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; font-size: 14px;
-    font-weight: 700; color: #fff; flex-shrink: 0; cursor: pointer;
-    position: relative;
-  }
-  .agent-avatar::after {
-    content: ''; position: absolute; bottom: 1px; right: 1px;
-    width: 10px; height: 10px; background: var(--success); border-radius: 50%;
-    border: 2px solid var(--sidebar-bg);
-  }
-
+  .agent-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; cursor: pointer; position: relative; }
+  .agent-avatar::after { content: ''; position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; background: var(--success); border-radius: 50%; border: 2px solid var(--sidebar-bg); }
   .sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border); }
-  .search-input {
-    width: 100%; padding: 8px 12px 8px 36px; background: var(--input-bg);
-    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
-    font-size: 13px; outline: none; position: relative;
-  }
   .search-wrap { position: relative; }
   .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 14px; pointer-events: none; }
-
+  .search-input { width: 100%; padding: 8px 12px 8px 36px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px; outline: none; }
   .sidebar-tabs { display: flex; padding: 8px 12px; gap: 4px; border-bottom: 1px solid var(--border); }
-  .tab-btn {
-    flex: 1; padding: 7px; font-size: 12px; font-weight: 600; border: none;
-    background: transparent; color: var(--muted); border-radius: 6px;
-    cursor: pointer; transition: all .2s;
-  }
+  .tab-btn { flex: 1; padding: 7px; font-size: 12px; font-weight: 600; border: none; background: transparent; color: var(--muted); border-radius: 6px; cursor: pointer; transition: all .2s; }
   .tab-btn.active { background: var(--primary); color: #fff; }
-
   .conv-list { flex: 1; overflow-y: auto; }
   .conv-list::-webkit-scrollbar { width: 4px; }
   .conv-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-  .conv-item {
-    padding: 14px 16px; border-bottom: 1px solid rgba(51,65,85,.5);
-    cursor: pointer; transition: background .15s; display: flex; align-items: flex-start; gap: 10px;
-  }
+  .conv-item { padding: 14px 16px; border-bottom: 1px solid rgba(51,65,85,.5); cursor: pointer; transition: background .15s; display: flex; align-items: flex-start; gap: 10px; }
   .conv-item:hover { background: rgba(99,102,241,.08); }
   .conv-item.active { background: rgba(99,102,241,.15); border-left: 3px solid var(--primary); }
-  .conv-avatar {
-    width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    display: flex; align-items: center; justify-content: center; font-size: 15px;
-    font-weight: 700; color: #fff; flex-shrink: 0;
-  }
+  .conv-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: #fff; flex-shrink: 0; }
   .conv-content { flex: 1; min-width: 0; }
   .conv-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-  .conv-name { font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .conv-time { font-size: 11px; color: var(--muted); flex-shrink: 0; }
   .conv-preview { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .conv-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
-  .unread-badge {
-    background: var(--primary); color: #fff; font-size: 10px; font-weight: 700;
-    padding: 2px 7px; border-radius: 10px; min-width: 18px; text-align: center;
-  }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-    margin-top: 6px;
-  }
+  .unread-badge { background: var(--primary); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; min-width: 18px; text-align: center; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
   .status-open { background: var(--success); }
   .status-resolved { background: var(--muted); }
-
   .empty-state { padding: 40px 20px; text-align: center; color: var(--muted); }
   .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; }
-
-  /* ── Main area ── */
   .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .no-conv {
-    flex: 1; display: flex; flex-direction: column; align-items: center;
-    justify-content: center; color: var(--muted);
-  }
+  .no-conv { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--muted); }
   .no-conv .icon { font-size: 64px; margin-bottom: 16px; }
   .no-conv h2 { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
   .no-conv p { font-size: 14px; }
-
-  /* Chat header */
-  .chat-header {
-    padding: 16px 20px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 12px; background: var(--sidebar-bg);
-    flex-shrink: 0;
-  }
+  .chat-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: var(--sidebar-bg); flex-shrink: 0; }
   .chat-header-info { flex: 1; min-width: 0; }
-  .chat-header-name { font-size: 16px; font-weight: 700; color: var(--text); }
+  .chat-header-name { font-size: 16px; font-weight: 700; }
   .chat-header-sub { font-size: 12px; color: var(--muted); }
   .header-actions { display: flex; gap: 8px; }
-  .btn-icon {
-    width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); cursor: pointer; display: flex;
-    align-items: center; justify-content: center; font-size: 16px; transition: all .2s;
-  }
-  .btn-icon:hover { background: var(--border); color: var(--text); }
-  .btn-resolve {
-    padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: all .2s;
-  }
+  .btn-resolve { padding: 8px 16px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
   .btn-resolve.open { background: rgba(16,185,129,.15); color: var(--success); }
   .btn-resolve.open:hover { background: rgba(16,185,129,.25); }
   .btn-resolve.resolved { background: rgba(99,102,241,.15); color: var(--primary); }
   .btn-resolve.resolved:hover { background: rgba(99,102,241,.25); }
-
-  /* Messages area */
-  .messages-area {
-    flex: 1; overflow-y: auto; padding: 20px; display: flex;
-    flex-direction: column; gap: 12px;
-  }
+  .messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
   .messages-area::-webkit-scrollbar { width: 4px; }
   .messages-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
   .msg-group { display: flex; gap: 8px; max-width: 72%; }
   .msg-group.agent { align-self: flex-end; flex-direction: row-reverse; }
   .msg-group.visitor { align-self: flex-start; }
   .msg-group.system { align-self: center; max-width: 100%; }
-
-  .msg-avatar {
-    width: 32px; height: 32px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; font-size: 12px;
-    font-weight: 700; color: #fff; flex-shrink: 0; align-self: flex-end;
-  }
+  .msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; align-self: flex-end; }
   .msg-content { display: flex; flex-direction: column; gap: 4px; }
   .msg-group.agent .msg-content { align-items: flex-end; }
-
-  .msg-bubble {
-    padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5;
-    word-break: break-word; max-width: 100%;
-  }
+  .msg-bubble { padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.5; word-break: break-word; }
   .msg-group.agent .msg-bubble { background: var(--bubble-agent); color: #fff; border-bottom-right-radius: 4px; }
   .msg-group.visitor .msg-bubble { background: var(--bubble-visitor); color: var(--text); border-bottom-left-radius: 4px; }
   .msg-group.system .msg-bubble { background: rgba(99,102,241,.08); color: var(--muted); font-size: 12px; padding: 6px 14px; border-radius: 20px; }
-
-  .msg-file {
-    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-    border-radius: 16px; text-decoration: none; font-size: 13px;
-  }
+  .msg-file { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 16px; text-decoration: none; font-size: 13px; }
   .msg-group.agent .msg-file { background: var(--bubble-agent); color: #fff; border-bottom-right-radius: 4px; }
   .msg-group.visitor .msg-file { background: var(--bubble-visitor); color: var(--text); border-bottom-left-radius: 4px; }
-  .msg-file:hover { opacity: .85; }
   .msg-time { font-size: 11px; color: var(--muted); padding: 0 4px; }
   .msg-sender { font-size: 11px; color: var(--muted); padding: 0 4px; }
-
-  /* Typing indicator */
   .typing-indicator { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
   .typing-dots { display: flex; gap: 4px; padding: 10px 14px; background: var(--bubble-visitor); border-radius: 16px; border-bottom-left-radius: 4px; }
   .typing-dots span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite; }
   .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
   .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
   @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
-
-  /* Input area */
-  .input-area {
-    border-top: 1px solid var(--border); background: var(--sidebar-bg); padding: 16px 20px;
-    flex-shrink: 0;
-  }
+  .input-area { border-top: 1px solid var(--border); background: var(--sidebar-bg); padding: 16px 20px; flex-shrink: 0; position: relative; }
   .input-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
-  .toolbar-btn {
-    width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--muted); cursor: pointer; display: flex;
-    align-items: center; justify-content: center; font-size: 15px; transition: all .2s;
-  }
+  .toolbar-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all .2s; }
   .toolbar-btn:hover { background: var(--border); color: var(--text); }
   .input-row { display: flex; gap: 10px; align-items: flex-end; }
-  .msg-input {
-    flex: 1; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border);
-    border-radius: 12px; color: var(--text); font-size: 14px; resize: none; outline: none;
-    font-family: var(--font); max-height: 120px; line-height: 1.5; transition: border-color .2s;
-  }
+  .msg-input { flex: 1; padding: 12px 16px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 14px; resize: none; outline: none; font-family: var(--font); max-height: 120px; line-height: 1.5; transition: border-color .2s; }
   .msg-input:focus { border-color: var(--primary); }
   .msg-input::placeholder { color: var(--muted); }
-  .send-btn {
-    width: 44px; height: 44px; background: var(--primary); border: none; border-radius: 12px;
-    color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center;
-    justify-content: center; transition: background .2s; flex-shrink: 0;
-  }
+  .send-btn { width: 44px; height: 44px; background: var(--primary); border: none; border-radius: 12px; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .2s; flex-shrink: 0; }
   .send-btn:hover { background: var(--primary-hover); }
-  .send-btn:disabled { background: var(--border); cursor: not-allowed; }
   input[type="file"] { display: none; }
-
-  /* Info panel */
-  .info-panel {
-    width: 280px; background: var(--sidebar-bg); border-left: 1px solid var(--border);
-    overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column;
-  }
+  .info-panel { width: 280px; background: var(--sidebar-bg); border-left: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; display: flex; flex-direction: column; }
   .info-section { padding: 20px; border-bottom: 1px solid var(--border); }
   .info-section h3 { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 14px; }
   .info-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
   .info-icon { color: var(--muted); font-size: 14px; flex-shrink: 0; margin-top: 2px; }
   .info-label { font-size: 11px; color: var(--muted); }
   .info-value { font-size: 13px; color: var(--text); font-weight: 500; }
-  .visitor-big-avatar {
-    width: 64px; height: 64px; background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-size: 24px; font-weight: 700; color: #fff; margin: 0 auto 12px;
-  }
-  .visitor-name { text-align: center; font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .visitor-big-avatar { width: 64px; height: 64px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; margin: 0 auto 12px; }
+  .visitor-name { text-align: center; font-size: 16px; font-weight: 600; margin-bottom: 4px; }
   .visitor-email { text-align: center; font-size: 13px; color: var(--muted); }
   .conv-stat { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
   .conv-stat span:first-child { color: var(--muted); }
   .conv-stat span:last-child { color: var(--text); font-weight: 500; }
-  .status-badge {
-    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
-    border-radius: 20px; font-size: 12px; font-weight: 600;
-  }
+  .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
   .status-badge.open { background: rgba(16,185,129,.15); color: var(--success); }
   .status-badge.resolved { background: rgba(148,163,184,.15); color: var(--muted); }
-
-  /* Notifications */
   .notif-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
-  .notif {
-    padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4); animation: slideIn .3s ease;
-    display: flex; align-items: center; gap: 8px; max-width: 320px;
-  }
+  .notif { padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.4); animation: slideIn .3s ease; display: flex; align-items: center; gap: 8px; max-width: 320px; }
   .notif.success { background: #065f46; color: #6ee7b7; border: 1px solid #10b981; }
   .notif.info { background: #1e1b4b; color: #a5b4fc; border: 1px solid var(--primary); }
   .notif.error { background: #7f1d1d; color: #fca5a5; border: 1px solid var(--danger); }
   @keyframes slideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
-
-  /* Date separator */
   .date-sep { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
   .date-sep::before, .date-sep::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .date-sep span { font-size: 11px; color: var(--muted); white-space: nowrap; }
-
-  /* Emoji picker */
-  .emoji-picker {
-    position: absolute; bottom: 80px; left: 20px; background: var(--card-bg);
-    border: 1px solid var(--border); border-radius: 12px; padding: 12px;
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 100; display: none;
-  }
+  .emoji-picker { position: absolute; bottom: 80px; left: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 100; display: none; }
   .emoji-btn { font-size: 20px; cursor: pointer; padding: 4px; border-radius: 6px; border: none; background: transparent; transition: background .15s; }
   .emoji-btn:hover { background: var(--border); }
-
-  /* Agents sidebar section */
   .agents-section { padding: 12px 16px; border-top: 1px solid var(--border); }
   .agents-section h4 { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
   .agent-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
   .agent-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .agent-item-name { font-size: 13px; color: var(--text); }
-
-  /* Responsive */
   @media (max-width: 1024px) { .info-panel { display: none; } }
   @media (max-width: 768px) { .sidebar { width: 260px; } }
 </style>
 </head>
 <body>
-
-<!-- Login -->
 <div id="login-screen">
   <div class="login-box">
     <div class="login-logo">💬</div>
     <h1 class="login-title">LiveChat</h1>
     <p class="login-subtitle">Agent Dashboard — Sign in to start</p>
-    <div class="form-group">
-      <label>Email address</label>
-      <input type="email" id="login-email" placeholder="alice@demo.com" value="alice@demo.com" />
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-pass" placeholder="••••••••" value="demo123" />
-    </div>
+    <div class="form-group"><label>Email address</label><input type="email" id="login-email" placeholder="alice@demo.com" value="alice@demo.com" /></div>
+    <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" value="demo123" /></div>
     <div class="error-msg" id="login-error">Invalid credentials. Try again.</div>
     <button class="btn-primary" id="login-btn">Sign In →</button>
-    <div class="login-hint">
-      Demo agents:<br/>
-      <strong>alice@demo.com</strong> / <strong>demo123</strong><br/>
-      <strong>bob@demo.com</strong> / <strong>demo123</strong>
-    </div>
+    <div class="login-hint">Demo agents:<br/><strong>alice@demo.com</strong> / <strong>demo123</strong><br/><strong>bob@demo.com</strong> / <strong>demo123</strong></div>
   </div>
 </div>
-
-<!-- App -->
 <div id="app">
   <div class="layout">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="brand">
-          <span class="brand-icon">💬</span>
-          <span class="brand-name">LiveChat</span>
-          <span class="brand-badge">LIVE</span>
-        </div>
+        <div class="brand"><span class="brand-icon">💬</span><span class="brand-name">LiveChat</span><span class="brand-badge">LIVE</span></div>
         <div class="agent-avatar" id="agent-avatar-btn" title="Logout"></div>
       </div>
-      <div class="sidebar-search">
-        <div class="search-wrap">
-          <span class="search-icon">🔍</span>
-          <input class="search-input" type="search" id="search-input" placeholder="Search conversations…" />
-        </div>
-      </div>
+      <div class="sidebar-search"><div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" type="search" id="search-input" placeholder="Search conversations…" /></div></div>
       <div class="sidebar-tabs">
         <button class="tab-btn active" data-filter="all">All</button>
         <button class="tab-btn" data-filter="open">Open</button>
         <button class="tab-btn" data-filter="resolved">Resolved</button>
       </div>
-      <div class="conv-list" id="conv-list">
-        <div class="empty-state"><div class="icon">🌙</div><p>No conversations yet</p></div>
-      </div>
-      <div class="agents-section">
-        <h4>Team</h4>
-        <div id="agents-list"></div>
-      </div>
+      <div class="conv-list" id="conv-list"><div class="empty-state"><div class="icon">🌙</div><p>No conversations yet</p></div></div>
+      <div class="agents-section"><h4>Team</h4><div id="agents-list"></div></div>
     </aside>
-
-    <!-- Main -->
     <main class="main" id="main-area">
-      <div class="no-conv" id="no-conv-placeholder">
-        <div class="icon">💬</div>
-        <h2>Select a conversation</h2>
-        <p>Choose one from the sidebar to start chatting</p>
-      </div>
-      <div id="chat-view" style="display:none; flex:1; flex-direction:column; height:100%;">
+      <div class="no-conv" id="no-conv-placeholder"><div class="icon">💬</div><h2>Select a conversation</h2><p>Choose one from the sidebar to start chatting</p></div>
+      <div id="chat-view" style="display:none;flex:1;flex-direction:column;height:100%;">
         <div class="chat-header" id="chat-header"></div>
         <div class="messages-area" id="messages-area"></div>
         <div class="input-area" id="input-area">
           <div class="input-toolbar">
             <button class="toolbar-btn" id="emoji-toggle-btn" title="Emoji">😊</button>
             <button class="toolbar-btn" id="attach-btn" title="Attach file">📎</button>
-            <button class="toolbar-btn" id="canned-btn" title="Canned replies">⚡</button>
           </div>
           <div id="emoji-picker" class="emoji-picker"></div>
           <div class="input-row">
@@ -393,46 +201,33 @@
         </div>
       </div>
     </main>
-
-    <!-- Info Panel -->
     <aside class="info-panel" id="info-panel" style="display:none;"></aside>
   </div>
 </div>
-
-<!-- Notifications -->
 <div class="notif-container" id="notif-container"></div>
-
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const EMOJIS = ['😀','😂','😍','🤔','😎','👍','❤️','🔥','✅','⚡','🎉','💡','🙏','👏','😢','😡','🤝','💪','🌟','📌','🚀','💬','📞','✉️','🕐','📊','🔔','⚙️','🔒','💰'];
+const EMOJIS = ['😀','😂','😍','🤔','😎','👍','❤️','🔥','✅','⚡','🎉','💡','🙏','👏','😢','😡','🤝','💪','🌟','📌','🚀','💬','📞','✉️','🔐','💰'];
 const CANNED = [
   { trigger: '/hello', text: 'Hello! Welcome to our support. How can I help you today?' },
   { trigger: '/thanks', text: 'Thank you for contacting us. Is there anything else I can help you with?' },
-  { trigger: '/wait', text: 'Please hold on a moment, I\'m looking into this for you.' },
-  { trigger: '/resolve', text: 'I\'m glad we could resolve your issue! Have a great day!' },
-  { trigger: '/sorry', text: 'I apologize for the inconvenience. Let me make sure we fix this for you right away.' },
+  { trigger: '/wait', text: "Please hold on a moment, I'm looking into this for you." },
+  { trigger: '/resolve', text: "I'm glad we could resolve your issue! Have a great day!" },
+  { trigger: '/sorry', text: "I apologize for the inconvenience. Let me make sure we fix this for you right away." },
 ];
 
 let token = localStorage.getItem('lc_token');
 let agentInfo = JSON.parse(localStorage.getItem('lc_agent') || 'null');
-let socket = null;
-let conversations = [];
-let activeConvId = null;
-let filter = 'all';
-let typingTimer = null;
-let visitorTypingTimer = null;
-let emojiPickerOpen = false;
+let socket = null, conversations = [], activeConvId = null, filter = 'all';
+let typingTimer = null, visitorTypingTimer = null, emojiPickerOpen = false;
 
-// ── Notification ──
 function notify(msg, type='info') {
-  const el = document.createElement('div');
-  el.className = `notif ${type}`;
+  const el = document.createElement('div'); el.className = `notif ${type}`;
   el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'❌':'💬'}</span> ${msg}`;
   document.getElementById('notif-container').appendChild(el);
   setTimeout(() => el.remove(), 4000);
 }
 
-// ── Time format ──
 function timeAgo(ts) {
   const diff = (Date.now() - new Date(ts)) / 1000;
   if (diff < 60) return 'just now';
@@ -440,38 +235,25 @@ function timeAgo(ts) {
   if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
   return new Date(ts).toLocaleDateString();
 }
-function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+function fmtTime(ts) { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
 
-// ── Auth ──
 async function doLogin() {
   const email = document.getElementById('login-email').value;
   const pass = document.getElementById('login-pass').value;
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
-  const btn = document.getElementById('login-btn');
-  btn.textContent = 'Signing in…'; btn.disabled = true;
+  const errEl = document.getElementById('login-error'); errEl.style.display = 'none';
+  const btn = document.getElementById('login-btn'); btn.textContent = 'Signing in…'; btn.disabled = true;
   try {
     const res = await fetch('/api/agent/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: pass }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error);
     token = data.token; agentInfo = data.agent;
-    localStorage.setItem('lc_token', token);
-    localStorage.setItem('lc_agent', JSON.stringify(agentInfo));
+    localStorage.setItem('lc_token', token); localStorage.setItem('lc_agent', JSON.stringify(agentInfo));
     showApp();
-  } catch(e) {
-    errEl.style.display = 'block';
-    btn.textContent = 'Sign In →'; btn.disabled = false;
-  }
+  } catch(e) { errEl.style.display = 'block'; btn.textContent = 'Sign In →'; btn.disabled = false; }
 }
 
-function logout() {
-  localStorage.removeItem('lc_token'); localStorage.removeItem('lc_agent');
-  location.reload();
-}
+function logout() { localStorage.removeItem('lc_token'); localStorage.removeItem('lc_agent'); location.reload(); }
 
-// ── App Init ──
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -480,26 +262,16 @@ function showApp() {
   av.textContent = agentInfo.avatar || agentInfo.name[0];
   av.title = `${agentInfo.name} — Click to logout`;
   av.addEventListener('click', logout);
-  initSocket();
-  buildEmojiPicker();
-  buildCannedReplies();
+  initSocket(); buildEmojiPicker();
 }
 
 function initSocket() {
   socket = io();
-  socket.on('connect', () => {
-    socket.emit('agent:join', { token });
-  });
-  socket.on('agent:joined', ({ agent }) => {
-    updateAgentsList([agent]);
-  });
-  socket.on('conversations:list', (list) => {
-    conversations = list;
-    renderConvList();
-  });
+  socket.on('connect', () => socket.emit('agent:join', { token }));
+  socket.on('agent:joined', ({ agent }) => updateAgentsList([agent]));
+  socket.on('conversations:list', (list) => { conversations = list; renderConvList(); });
   socket.on('conversation:new', (conv) => {
-    conversations.unshift(conv);
-    renderConvList();
+    conversations.unshift(conv); renderConvList();
     notify(`New conversation from ${conv.visitorInfo?.name || 'Visitor'}`, 'info');
     if (Notification.permission === 'granted') new Notification('New chat', { body: `${conv.visitorInfo?.name || 'Visitor'} started a conversation` });
   });
@@ -511,45 +283,26 @@ function initSocket() {
   });
   socket.on('message:new', ({ conversationId, message }) => {
     const idx = conversations.findIndex(c => c.id === conversationId);
-    if (idx >= 0) {
-      conversations[idx].messages = [message];
-      conversations[idx].updatedAt = message.timestamp;
-      if (message.from === 'visitor' && conversationId !== activeConvId) {
-        conversations[idx].unreadByAgent = (conversations[idx].unreadByAgent || 0) + 1;
-      }
-    }
+    if (idx >= 0) { conversations[idx].messages = [message]; conversations[idx].updatedAt = message.timestamp; if (message.from === 'visitor' && conversationId !== activeConvId) conversations[idx].unreadByAgent = (conversations[idx].unreadByAgent || 0) + 1; }
     renderConvList();
-    if (activeConvId === conversationId) {
-      appendMessage(message);
-      socket.emit('messages:seen', { conversationId });
-      if (visitorTypingTimer) { clearTimeout(visitorTypingTimer); hideTyping(); }
-    }
+    if (activeConvId === conversationId) { appendMessage(message); socket.emit('messages:seen', { conversationId }); if (visitorTypingTimer) { clearTimeout(visitorTypingTimer); hideTyping(); } }
   });
   socket.on('visitor:typing', ({ conversationId, typing, visitorName }) => {
     if (activeConvId !== conversationId) return;
-    if (typing) showTyping(visitorName);
-    else hideTyping();
+    if (typing) showTyping(visitorName); else hideTyping();
     if (visitorTypingTimer) clearTimeout(visitorTypingTimer);
     if (typing) visitorTypingTimer = setTimeout(hideTyping, 4000);
   });
-  socket.on('agent:online', ({ agentId, name }) => {});
-  socket.on('agent:offline', ({ agentId }) => {});
-  socket.on('disconnect', () => {});
 }
 
-// ── Conversation List ──
 function renderConvList() {
   let list = [...conversations];
   const q = document.getElementById('search-input').value.toLowerCase();
   if (q) list = list.filter(c => (c.visitorInfo?.name||'').toLowerCase().includes(q) || (c.visitorInfo?.email||'').toLowerCase().includes(q));
   if (filter === 'open') list = list.filter(c => c.status === 'open');
   if (filter === 'resolved') list = list.filter(c => c.status === 'resolved');
-
   const el = document.getElementById('conv-list');
-  if (!list.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">🌙</div><p>No conversations</p></div>`;
-    return;
-  }
+  if (!list.length) { el.innerHTML = `<div class="empty-state"><div class="icon">🌙</div><p>No conversations</p></div>`; return; }
   el.innerHTML = list.map(c => {
     const lastMsg = c.messages?.[0];
     const preview = lastMsg ? (lastMsg.from === 'agent' ? `You: ${lastMsg.text||'📎 File'}` : (lastMsg.text || '📎 File')) : 'Start chatting…';
@@ -559,58 +312,37 @@ function renderConvList() {
       <span class="status-dot status-${c.status}"></span>
       <div class="conv-avatar">${initials}</div>
       <div class="conv-content">
-        <div class="conv-header">
-          <span class="conv-name">${escHtml(c.visitorInfo?.name || 'Visitor')}</span>
-          <span class="conv-time">${timeAgo(c.updatedAt)}</span>
-        </div>
+        <div class="conv-header"><span class="conv-name">${escHtml(c.visitorInfo?.name || 'Visitor')}</span><span class="conv-time">${timeAgo(c.updatedAt)}</span></div>
         <div class="conv-preview">${escHtml(preview.substring(0,60))}</div>
         <div class="conv-meta">${unread}</div>
-      </div>
-    </div>`;
+      </div></div>`;
   }).join('');
-
-  el.querySelectorAll('.conv-item').forEach(el => {
-    el.addEventListener('click', () => openConversation(el.dataset.id));
-  });
+  el.querySelectorAll('.conv-item').forEach(el => el.addEventListener('click', () => openConversation(el.dataset.id)));
 }
 
-// ── Open Conversation ──
 async function openConversation(convId) {
   activeConvId = convId;
   document.getElementById('no-conv-placeholder').style.display = 'none';
   document.getElementById('chat-view').style.display = 'flex';
   document.getElementById('info-panel').style.display = 'flex';
   renderConvList();
-
   try {
     const res = await fetch(`/api/conversations/${convId}`, { headers: { Authorization: `Bearer ${token}` } });
     const conv = await res.json();
     const idx = conversations.findIndex(c => c.id === convId);
     if (idx >= 0) conversations[idx] = conv;
-    renderChatHeader(conv);
-    renderMessages(conv.messages || []);
-    renderInfoPanel(conv);
-    socket.emit('messages:seen', { conversationId: convId });
-    renderConvList();
+    renderChatHeader(conv); renderMessages(conv.messages || []); renderInfoPanel(conv);
+    socket.emit('messages:seen', { conversationId: convId }); renderConvList();
   } catch(e) {}
 }
 
 function renderChatHeader(conv) {
   const name = conv.visitorInfo?.name || 'Visitor';
-  const email = conv.visitorInfo?.email || '';
-  const page = conv.visitorInfo?.page || '/';
   const isOpen = conv.status === 'open';
   document.getElementById('chat-header').innerHTML = `
     <div class="conv-avatar" style="width:40px;height:40px;">${name[0].toUpperCase()}</div>
-    <div class="chat-header-info">
-      <div class="chat-header-name">${escHtml(name)}</div>
-      <div class="chat-header-sub">${escHtml(email)} · ${escHtml(page)}</div>
-    </div>
-    <div class="header-actions">
-      <button class="btn-resolve ${isOpen?'open':'resolved'}" id="resolve-btn">
-        ${isOpen ? '✓ Resolve' : '↺ Reopen'}
-      </button>
-    </div>`;
+    <div class="chat-header-info"><div class="chat-header-name">${escHtml(name)}</div><div class="chat-header-sub">${escHtml(conv.visitorInfo?.email||'')} · ${escHtml(conv.visitorInfo?.page||'/')}</div></div>
+    <div class="header-actions"><button class="btn-resolve ${isOpen?'open':'resolved'}" id="resolve-btn">${isOpen ? '✓ Resolve' : '↺ Reopen'}</button></div>`;
   document.getElementById('resolve-btn').addEventListener('click', () => {
     if (isOpen) socket.emit('conversation:resolve', { conversationId: conv.id });
     else socket.emit('conversation:reopen', { conversationId: conv.id });
@@ -618,234 +350,106 @@ function renderChatHeader(conv) {
 }
 
 function renderMessages(messages) {
-  const area = document.getElementById('messages-area');
-  area.innerHTML = '';
+  const area = document.getElementById('messages-area'); area.innerHTML = '';
   let lastDate = '';
   messages.forEach(msg => {
     const d = new Date(msg.timestamp).toLocaleDateString();
-    if (d !== lastDate) {
-      lastDate = d;
-      const sep = document.createElement('div');
-      sep.className = 'date-sep';
-      sep.innerHTML = `<span>${d === new Date().toLocaleDateString() ? 'Today' : d}</span>`;
-      area.appendChild(sep);
-    }
+    if (d !== lastDate) { lastDate = d; const sep = document.createElement('div'); sep.className = 'date-sep'; sep.innerHTML = `<span>${d === new Date().toLocaleDateString() ? 'Today' : d}</span>`; area.appendChild(sep); }
     area.appendChild(buildMessageEl(msg));
   });
   area.scrollTop = area.scrollHeight;
 }
 
-function appendMessage(msg) {
-  const area = document.getElementById('messages-area');
-  area.appendChild(buildMessageEl(msg));
-  area.scrollTop = area.scrollHeight;
-}
+function appendMessage(msg) { const area = document.getElementById('messages-area'); area.appendChild(buildMessageEl(msg)); area.scrollTop = area.scrollHeight; }
 
 function buildMessageEl(msg) {
   const isAgent = msg.from === 'agent';
-  const isSystem = msg.from === 'system';
-  const group = document.createElement('div');
-  group.className = `msg-group ${msg.from}`;
-  group.dataset.id = msg.id;
-
+  const group = document.createElement('div'); group.className = `msg-group ${msg.from}`; group.dataset.id = msg.id;
   const avatarColor = isAgent ? (msg.agentColor || '#6366f1') : '#334155';
   const avatarText = isAgent ? (msg.agentAvatar || 'A') : (msg.visitorName?.[0] || 'V');
-
   let bodyHtml = '';
-  if (msg.fileUrl) {
-    const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.fileUrl);
-    if (isImg) bodyHtml = `<img src="${escHtml(msg.fileUrl)}" style="max-width:200px;border-radius:8px;display:block;" />`;
-    else bodyHtml = `<a class="msg-file" href="${escHtml(msg.fileUrl)}" target="_blank">📎 ${escHtml(msg.fileName||'File')}</a>`;
-  }
+  if (msg.fileUrl) { const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.fileUrl); if (isImg) bodyHtml = `<img src="${escHtml(msg.fileUrl)}" style="max-width:200px;border-radius:8px;display:block;" />`; else bodyHtml = `<a class="msg-file" href="${escHtml(msg.fileUrl)}" target="_blank">📎 ${escHtml(msg.fileName||'File')}</a>`; }
   if (msg.text) bodyHtml += `<div class="msg-bubble">${escHtml(msg.text).replace(/\n/g,'<br/>')}</div>`;
-
-  if (isSystem) {
-    group.innerHTML = `<div class="msg-bubble">${escHtml(msg.text)}</div>`;
-  } else {
-    group.innerHTML = `
-      <div class="msg-avatar" style="background:${avatarColor}">${avatarText}</div>
-      <div class="msg-content">
-        <span class="msg-sender">${isAgent ? escHtml(msg.agentName||'Agent') : escHtml(msg.visitorName||'Visitor')}</span>
-        ${bodyHtml}
-        <span class="msg-time">${fmtTime(msg.timestamp)}</span>
-      </div>`;
-  }
+  if (msg.from === 'system') { group.innerHTML = `<div class="msg-bubble">${escHtml(msg.text)}</div>`; }
+  else { group.innerHTML = `<div class="msg-avatar" style="background:${avatarColor}">${avatarText}</div><div class="msg-content"><span class="msg-sender">${isAgent ? escHtml(msg.agentName||'Agent') : escHtml(msg.visitorName||'Visitor')}</span>${bodyHtml}<span class="msg-time">${fmtTime(msg.timestamp)}</span></div>`; }
   return group;
 }
 
 function renderInfoPanel(conv) {
-  const info = conv.visitorInfo || {};
-  const name = info.name || 'Visitor';
+  const info = conv.visitorInfo || {}; const name = info.name || 'Visitor';
   document.getElementById('info-panel').innerHTML = `
-    <div class="info-section">
-      <div class="visitor-big-avatar">${name[0].toUpperCase()}</div>
-      <div class="visitor-name">${escHtml(name)}</div>
-      <div class="visitor-email">${escHtml(info.email || 'No email')}</div>
-    </div>
-    <div class="info-section">
-      <h3>Details</h3>
+    <div class="info-section"><div class="visitor-big-avatar">${name[0].toUpperCase()}</div><div class="visitor-name">${escHtml(name)}</div><div class="visitor-email">${escHtml(info.email||'No email')}</div></div>
+    <div class="info-section"><h3>Details</h3>
       <div class="info-row"><span class="info-icon">📧</span><div><div class="info-label">Email</div><div class="info-value">${escHtml(info.email||'—')}</div></div></div>
       <div class="info-row"><span class="info-icon">🌐</span><div><div class="info-label">Page</div><div class="info-value">${escHtml(info.page||'/')}</div></div></div>
-      <div class="info-row"><span class="info-icon">🕐</span><div><div class="info-label">Started</div><div class="info-value">${timeAgo(info.joinedAt||conv.createdAt)}</div></div></div>
+      <div class="info-row"><span class="info-icon">🔐</span><div><div class="info-label">Started</div><div class="info-value">${timeAgo(info.joinedAt||conv.createdAt)}</div></div></div>
     </div>
-    <div class="info-section">
-      <h3>Conversation</h3>
+    <div class="info-section"><h3>Conversation</h3>
       <div class="conv-stat"><span>Status</span><span class="status-badge ${conv.status}">${conv.status}</span></div>
       <div class="conv-stat"><span>Messages</span><span>${conv.messages?.length||0}</span></div>
       <div class="conv-stat"><span>Created</span><span>${timeAgo(conv.createdAt)}</span></div>
     </div>`;
 }
 
-// ── Typing indicator ──
 function showTyping(name) {
   let t = document.getElementById('typing-el');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'typing-el';
-    t.className = 'msg-group visitor typing-indicator';
-    t.innerHTML = `<div class="msg-avatar" style="background:#334155">${(name||'V')[0]}</div><div class="typing-dots"><span></span><span></span><span></span></div>`;
-    document.getElementById('messages-area').appendChild(t);
-  }
+  if (!t) { t = document.createElement('div'); t.id = 'typing-el'; t.className = 'msg-group visitor typing-indicator'; t.innerHTML = `<div class="msg-avatar" style="background:#334155">${(name||'V')[0]}</div><div class="typing-dots"><span></span><span></span><span></span></div>`; document.getElementById('messages-area').appendChild(t); }
   document.getElementById('messages-area').scrollTop = 9999;
 }
-function hideTyping() {
-  const t = document.getElementById('typing-el');
-  if (t) t.remove();
-}
+function hideTyping() { const t = document.getElementById('typing-el'); if (t) t.remove(); }
 
-// ── Send message ──
 function sendMessage() {
-  const input = document.getElementById('msg-input');
-  const text = input.value.trim();
+  const input = document.getElementById('msg-input'); const text = input.value.trim();
   if (!text || !activeConvId) return;
   socket.emit('agent:send', { conversationId: activeConvId, text });
-  input.value = '';
-  input.style.height = 'auto';
-  stopTyping();
-}
-
-function stopTyping() {
+  input.value = ''; input.style.height = 'auto';
   if (typingTimer) clearTimeout(typingTimer);
-  if (activeConvId) socket.emit('agent:typing', { conversationId: activeConvId, typing: false });
+  socket.emit('agent:typing', { conversationId: activeConvId, typing: false });
 }
 
-// ── Emoji ──
 function buildEmojiPicker() {
   const picker = document.getElementById('emoji-picker');
   picker.innerHTML = EMOJIS.map(e => `<button class="emoji-btn">${e}</button>`).join('');
-  picker.querySelectorAll('.emoji-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const inp = document.getElementById('msg-input');
-      inp.value += btn.textContent;
-      inp.focus();
-    });
-  });
+  picker.querySelectorAll('.emoji-btn').forEach(btn => btn.addEventListener('click', () => { const inp = document.getElementById('msg-input'); inp.value += btn.textContent; inp.focus(); }));
 }
 
-// ── Canned replies ──
-function buildCannedReplies() {
-  const input = document.getElementById('msg-input');
-  input.addEventListener('input', () => {
-    const val = input.value;
-    const match = CANNED.find(c => c.trigger === val.split(' ')[0]);
-    if (match) {
-      // show hint — could expand to full autocomplete
-    }
-  });
-}
-
-// ── File upload ──
 async function uploadFile(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  const res = await fetch('/api/upload', { method: 'POST', body: fd });
-  return await res.json();
+  const fd = new FormData(); fd.append('file', file);
+  const res = await fetch('/api/upload', { method: 'POST', body: fd }); return await res.json();
 }
 
-// ── Agents list ──
 function updateAgentsList(agents) {
-  const el = document.getElementById('agents-list');
-  const item = agents[0];
-  if (!item) return;
-  const existing = document.querySelector(`[data-agent="${item.id}"]`);
-  if (!existing) {
-    const d = document.createElement('div');
-    d.className = 'agent-item'; d.dataset.agent = item.id;
+  const el = document.getElementById('agents-list'); const item = agents[0]; if (!item) return;
+  if (!document.querySelector(`[data-agent="${item.id}"]`)) {
+    const d = document.createElement('div'); d.className = 'agent-item'; d.dataset.agent = item.id;
     d.innerHTML = `<span class="agent-dot" style="background:${item.color||'#6366f1'}"></span><span class="agent-item-name">${escHtml(item.name)}</span>`;
     el.appendChild(d);
   }
 }
 
-// ── Utils ──
-function escHtml(s) {
-  if (!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── Event listeners ──
 document.getElementById('login-btn').addEventListener('click', doLogin);
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    filter = btn.dataset.filter;
-    renderConvList();
-  });
-});
-
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filter = btn.dataset.filter; renderConvList(); }));
 document.getElementById('search-input').addEventListener('input', renderConvList);
-
-document.getElementById('msg-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-});
+document.getElementById('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 document.getElementById('msg-input').addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-  if (activeConvId) {
-    socket.emit('agent:typing', { conversationId: activeConvId, typing: true });
-    if (typingTimer) clearTimeout(typingTimer);
-    typingTimer = setTimeout(stopTyping, 3000);
-  }
-  // Canned reply check
-  const val = this.value;
-  const match = CANNED.find(c => val.trim() === c.trigger);
+  this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  if (activeConvId) { socket.emit('agent:typing', { conversationId: activeConvId, typing: true }); if (typingTimer) clearTimeout(typingTimer); typingTimer = setTimeout(() => socket.emit('agent:typing', { conversationId: activeConvId, typing: false }), 3000); }
+  const match = CANNED.find(c => this.value.trim() === c.trigger);
   if (match) { this.value = match.text; this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px'; }
 });
 document.getElementById('send-btn').addEventListener('click', sendMessage);
-
-document.getElementById('emoji-toggle-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const picker = document.getElementById('emoji-picker');
-  emojiPickerOpen = !emojiPickerOpen;
-  picker.style.display = emojiPickerOpen ? 'grid' : 'none';
-});
-document.addEventListener('click', () => {
-  if (emojiPickerOpen) {
-    document.getElementById('emoji-picker').style.display = 'none';
-    emojiPickerOpen = false;
-  }
-});
-
+document.getElementById('emoji-toggle-btn').addEventListener('click', (e) => { e.stopPropagation(); const picker = document.getElementById('emoji-picker'); emojiPickerOpen = !emojiPickerOpen; picker.style.display = emojiPickerOpen ? 'grid' : 'none'; });
+document.addEventListener('click', () => { if (emojiPickerOpen) { document.getElementById('emoji-picker').style.display = 'none'; emojiPickerOpen = false; } });
 document.getElementById('attach-btn').addEventListener('click', () => document.getElementById('file-input').click());
 document.getElementById('file-input').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file || !activeConvId) return;
-  try {
-    notify('Uploading file…', 'info');
-    const { url, name } = await uploadFile(file);
-    socket.emit('agent:send', { conversationId: activeConvId, fileUrl: url, fileName: name });
-  } catch(err) {
-    notify('File upload failed', 'error');
-  }
+  const file = e.target.files[0]; if (!file || !activeConvId) return;
+  try { notify('Uploading file…', 'info'); const { url, name } = await uploadFile(file); socket.emit('agent:send', { conversationId: activeConvId, fileUrl: url, fileName: name }); } catch(err) { notify('File upload failed', 'error'); }
   e.target.value = '';
 });
-
-// Notification permission
 if (Notification.permission === 'default') Notification.requestPermission();
-
-// Auto-login if token exists
 if (token && agentInfo) showApp();
 </script>
 </body>
