@@ -4,19 +4,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Demo Store — LiveChat Demo</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛍️</text></svg>" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --primary: #6366f1; --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   body { font-family: var(--font); background: #f8fafc; color: #1e293b; }
-
   nav { background: #fff; padding: 16px 40px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
   .nav-brand { font-size: 22px; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 8px; }
   .nav-links { display: flex; gap: 24px; }
-  .nav-links a { color: #64748b; text-decoration: none; font-size: 14px; font-weight: 500; transition: color .2s; }
+  .nav-links a { color: #64748b; text-decoration: none; font-size: 14px; font-weight: 500; }
   .nav-links a:hover { color: var(--primary); }
   .nav-cart { background: var(--primary); color: #fff; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
-
+  .notice-bar { background: var(--primary); color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: 500; }
+  .notice-bar a { color: #c7d2fe; text-decoration: none; font-weight: 700; }
+  .feature-strip { display: flex; justify-content: center; gap: 40px; padding: 24px 40px; background: #fff; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+  .feature-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; font-weight: 500; }
   .hero { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 50%, #c7d2fe 100%); padding: 80px 40px; text-align: center; }
   .hero h1 { font-size: 48px; font-weight: 900; color: #1e1b4b; margin-bottom: 12px; }
   .hero p { font-size: 18px; color: #4338ca; margin-bottom: 30px; }
@@ -25,7 +26,6 @@
   .btn-hero:hover { transform: translateY(-2px); }
   .btn-primary { background: var(--primary); color: #fff; }
   .btn-secondary { background: #fff; color: var(--primary); }
-
   .products { padding: 60px 40px; max-width: 1200px; margin: 0 auto; }
   .products h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
   .products p { color: #64748b; margin-bottom: 32px; }
@@ -40,7 +40,6 @@
   .product-price { font-size: 18px; font-weight: 800; color: var(--primary); }
   .add-cart { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
   .add-cart:hover { opacity: .9; }
-
   .faq { padding: 60px 40px; background: #fff; border-top: 1px solid #e2e8f0; }
   .faq-inner { max-width: 720px; margin: 0 auto; }
   .faq h2 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
@@ -52,32 +51,15 @@
   .faq-item.open .faq-a { max-height: 200px; padding: 0 20px 16px; }
   .faq-item.open .faq-arrow { transform: rotate(180deg); }
   .faq-arrow { transition: transform .3s; }
-
   footer { padding: 30px 40px; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 13px; flex-wrap: wrap; gap: 12px; }
-
-  .notice-bar { background: var(--primary); color: #fff; text-align: center; padding: 10px; font-size: 13px; font-weight: 500; }
-  .notice-bar a { color: #c7d2fe; text-decoration: none; font-weight: 700; }
-  .notice-bar a:hover { color: #fff; }
-
-  .feature-strip { display: flex; justify-content: center; gap: 40px; padding: 24px 40px; background: #fff; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
-  .feature-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #475569; font-weight: 500; }
-
-  @media (max-width: 768px) {
-    nav { padding: 12px 20px; }
-    .nav-links { display: none; }
-    .hero { padding: 50px 20px; }
-    .hero h1 { font-size: 32px; }
-    .products { padding: 40px 20px; }
-  }
+  @media (max-width: 768px) { nav { padding: 12px 20px; } .nav-links { display: none; } .hero { padding: 50px 20px; } .hero h1 { font-size: 32px; } .products { padding: 40px 20px; } }
 </style>
 </head>
 <body>
-
 <div class="notice-bar">
   🎭 This is a <strong>demo website</strong> — Try the <strong>chat widget</strong> in the bottom-right corner!
   Then open <a href="/dashboard/">/dashboard/</a> as an agent to see both sides.
 </div>
-
 <nav>
   <div class="nav-brand">🛍️ ShopDemo</div>
   <div class="nav-links">
@@ -88,14 +70,12 @@
   </div>
   <button class="nav-cart">🛒 Cart (0)</button>
 </nav>
-
 <div class="feature-strip">
   <div class="feature-item">🚚 Free shipping over $50</div>
   <div class="feature-item">↩️ 30-day returns</div>
   <div class="feature-item">🔒 Secure checkout</div>
   <div class="feature-item">💬 24/7 live support</div>
 </div>
-
 <section class="hero">
   <h1>Shop the Latest Trends</h1>
   <p>Discover amazing products with real-time customer support</p>
@@ -104,101 +84,39 @@
     <button class="btn-hero btn-secondary">View Deals</button>
   </div>
 </section>
-
 <section class="products">
   <h2>Featured Products</h2>
   <p>Top picks for you this week</p>
   <div class="products-grid">
-    <div class="product-card">
-      <div class="product-img" style="background: linear-gradient(135deg, #dbeafe, #bfdbfe);">💻</div>
-      <div class="product-info">
-        <div class="product-name">Pro Laptop 15"</div>
-        <div class="product-desc">High-performance laptop with 16GB RAM, 512GB SSD and stunning display.</div>
-        <div class="product-bottom"><span class="product-price">$1,299</span><button class="add-cart">Add to Cart</button></div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="product-img" style="background: linear-gradient(135deg, #dcfce7, #bbf7d0);">📱</div>
-      <div class="product-info">
-        <div class="product-name">SmartPhone X</div>
-        <div class="product-desc">Latest flagship phone with amazing camera, all-day battery life.</div>
-        <div class="product-bottom"><span class="product-price">$899</span><button class="add-cart">Add to Cart</button></div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="product-img" style="background: linear-gradient(135deg, #fef3c7, #fde68a);">🎧</div>
-      <div class="product-info">
-        <div class="product-name">Wireless Headphones</div>
-        <div class="product-desc">Active noise cancellation, 30h battery, premium sound quality.</div>
-        <div class="product-bottom"><span class="product-price">$299</span><button class="add-cart">Add to Cart</button></div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="product-img" style="background: linear-gradient(135deg, #fce7f3, #fbcfe8);">⌚</div>
-      <div class="product-info">
-        <div class="product-name">Smart Watch Pro</div>
-        <div class="product-desc">Health tracking, GPS, notifications and 5-day battery life.</div>
-        <div class="product-bottom"><span class="product-price">$349</span><button class="add-cart">Add to Cart</button></div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="product-img" style="background: linear-gradient(135deg, #ede9fe, #ddd6fe);">🖥️</div>
-      <div class="product-info">
-        <div class="product-name">4K Monitor 27"</div>
-        <div class="product-desc">Ultra-sharp 4K display with HDR, perfect for creative work.</div>
-        <div class="product-bottom"><span class="product-price">$549</span><button class="add-cart">Add to Cart</button></div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="product-img" style="background: linear-gradient(135deg, #cffafe, #a5f3fc);">🎮</div>
-      <div class="product-info">
-        <div class="product-name">Gaming Console</div>
-        <div class="product-desc">Next-gen gaming with 4K output and massive game library.</div>
-        <div class="product-bottom"><span class="product-price">$499</span><button class="add-cart">Add to Cart</button></div>
-      </div>
-    </div>
+    <div class="product-card"><div class="product-img" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe)">💻</div><div class="product-info"><div class="product-name">Pro Laptop 15"</div><div class="product-desc">High-performance laptop with 16GB RAM, 512GB SSD and stunning display.</div><div class="product-bottom"><span class="product-price">$1,299</span><button class="add-cart">Add to Cart</button></div></div></div>
+    <div class="product-card"><div class="product-img" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0)">📱</div><div class="product-info"><div class="product-name">SmartPhone X</div><div class="product-desc">Latest flagship phone with amazing camera, all-day battery life.</div><div class="product-bottom"><span class="product-price">$899</span><button class="add-cart">Add to Cart</button></div></div></div>
+    <div class="product-card"><div class="product-img" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">🎧</div><div class="product-info"><div class="product-name">Wireless Headphones</div><div class="product-desc">Active noise cancellation, 30h battery, premium sound quality.</div><div class="product-bottom"><span class="product-price">$299</span><button class="add-cart">Add to Cart</button></div></div></div>
+    <div class="product-card"><div class="product-img" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8)">⌚</div><div class="product-info"><div class="product-name">Smart Watch Pro</div><div class="product-desc">Health tracking, GPS, notifications and 5-day battery life.</div><div class="product-bottom"><span class="product-price">$349</span><button class="add-cart">Add to Cart</button></div></div></div>
+    <div class="product-card"><div class="product-img" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe)">🖥️</div><div class="product-info"><div class="product-name">4K Monitor 27"</div><div class="product-desc">Ultra-sharp 4K display with HDR, perfect for creative work.</div><div class="product-bottom"><span class="product-price">$549</span><button class="add-cart">Add to Cart</button></div></div></div>
+    <div class="product-card"><div class="product-img" style="background:linear-gradient(135deg,#cffafe,#a5f3fc)">🎮</div><div class="product-info"><div class="product-name">Gaming Console</div><div class="product-desc">Next-gen gaming with 4K output and massive game library.</div><div class="product-bottom"><span class="product-price">$499</span><button class="add-cart">Add to Cart</button></div></div></div>
   </div>
 </section>
-
 <section class="faq">
   <div class="faq-inner">
     <h2>Frequently Asked Questions</h2>
     <p>Have questions? Chat with us using the widget in the bottom-right corner!</p>
-    <div class="faq-item">
-      <div class="faq-q">How long does shipping take? <span class="faq-arrow">▼</span></div>
-      <div class="faq-a">Standard shipping takes 3-5 business days. Express shipping (1-2 days) is available at checkout for most locations.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">What is your return policy? <span class="faq-arrow">▼</span></div>
-      <div class="faq-a">We offer a 30-day hassle-free return policy. Items must be in original condition with all accessories and packaging.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">Do you offer warranty on electronics? <span class="faq-arrow">▼</span></div>
-      <div class="faq-a">Yes! All electronics come with a minimum 1-year manufacturer warranty. Extended warranties are also available.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q">How can I track my order? <span class="faq-arrow">▼</span></div>
-      <div class="faq-a">Once your order ships, you'll receive an email with tracking information. You can also chat with us live for real-time updates!</div>
-    </div>
+    <div class="faq-item"><div class="faq-q">How long does shipping take? <span class="faq-arrow">▼</span></div><div class="faq-a">Standard shipping takes 3-5 business days. Express shipping (1-2 days) is available at checkout.</div></div>
+    <div class="faq-item"><div class="faq-q">What is your return policy? <span class="faq-arrow">▼</span></div><div class="faq-a">We offer a 30-day hassle-free return policy. Items must be in original condition.</div></div>
+    <div class="faq-item"><div class="faq-q">Do you offer warranty on electronics? <span class="faq-arrow">▼</span></div><div class="faq-a">Yes! All electronics come with a minimum 1-year manufacturer warranty.</div></div>
+    <div class="faq-item"><div class="faq-q">How can I track my order? <span class="faq-arrow">▼</span></div><div class="faq-a">Once your order ships, you'll receive an email with tracking information. You can also chat with us live!</div></div>
   </div>
 </section>
-
 <footer>
   <span>🛍️ ShopDemo — LiveChat Integration Example</span>
   <span>Need help? 💬 Chat with us!</span>
 </footer>
-
 <!-- LiveChat Widget -->
 <script src="/widget/widget.js"></script>
-
 <script>
-  document.querySelectorAll('.faq-q').forEach(q => {
-    q.addEventListener('click', () => q.parentElement.classList.toggle('open'));
-  });
+  document.querySelectorAll('.faq-q').forEach(q => q.addEventListener('click', () => q.parentElement.classList.toggle('open')));
   document.querySelectorAll('.add-cart').forEach(btn => {
     btn.addEventListener('click', () => {
-      btn.textContent = '✓ Added!';
-      btn.style.background = '#10b981';
+      btn.textContent = '✓ Added!'; btn.style.background = '#10b981';
       setTimeout(() => { btn.textContent = 'Add to Cart'; btn.style.background = ''; }, 2000);
     });
   });
