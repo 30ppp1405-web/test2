@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Order Book</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #e6edf3; font-family: monospace; font-size: 13px; }
+
+    header {
+      padding: 10px 16px; border-bottom: 1px solid #21262d;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    header span.title { color: #7d8590; font-size: 11px; letter-spacing: 1px; }
+
+    .status { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.connected    { background: #2ea043; }
+    .dot.connecting   { background: #d29922; animation: pulse 1s infinite; }
+    .dot.disconnected { background: #f85149; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    #lastUpdate { font-size: 11px; color: #7d8590; margin-right: auto; }
+
+    select {
+      background: #161b22; color: #e6edf3;
+      border: 1px solid #30363d; padding: 3px 8px;
+      border-radius: 4px; font-family: monospace;
+    }
+
+    .tables { display: flex; height: calc(100vh - 46px); }
+    .divider { width: 1px; background: #21262d; flex-shrink: 0; }
+    .panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .panel-header {
+      padding: 7px 12px; font-size: 11px;
+      font-weight: bold; letter-spacing: 1px; flex-shrink: 0;
+    }
+    .buys  .panel-header { background:#0d1f0d; color:#2ea043; border-bottom:1px solid #2ea043; }
+    .sells .panel-header { background:#1f0d0d; color:#f85149; border-bottom:1px solid #f85149; }
+
+    .scroll { overflow-y: auto; flex: 1; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 6px 12px; text-align: right;
+      background: #161b22; color: #7d8590;
+      font-size: 11px; position: sticky; top: 0; z-index: 1;
+    }
+    td { padding: 5px 12px; border-bottom: 1px solid #161b22; text-align: right; }
+
+    .buy-row  td { color: #2ea043; }
+    .sell-row td { color: #f85149; }
+    .price { font-weight: bold; }
+
+    @keyframes flash-add    { 0%{background:#0d2b0d} 100%{background:transparent} }
+    @keyframes flash-remove { 0%{background:#2b0d0d} 100%{background:transparent} }
+    @keyframes flash-update { 0%{background:#1a1a0d} 100%{background:transparent} }
+    .flash-add    { animation: flash-add    .6s ease-out; }
+    .flash-remove { animation: flash-remove .6s ease-out; }
+    .flash-update { animation: flash-update .6s ease-out; }
+
+    .empty { text-align: center; color: #7d8590; padding: 40px; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="title">LIVE ORDER BOOK</span>
+  <div class="status">
+    <div class="dot connecting" id="dot"></div>
+    <span id="statusText" style="font-size:11px;color:#7d8590">در حال اتصال...</span>
+  </div>
+  <span id="lastUpdate"></span>
+  <label style="font-size:11px;color:#7d8590;display:flex;align-items:center;gap:6px">
+    نوع بازار:
+    <select id="extype">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="7" selected>7</option>
+    </select>
+  </label>
+</header>
+
+<div class="tables">
+  <div class="panel buys">
+    <div class="panel-header">▲ خرید — BUY</div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>قیمت</th><th>مقدار</th><th>ارزش</th></tr></thead>
+        <tbody id="buyTable"><tr><td colspan="3" class="empty">در انتظار داده...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="panel sells">
+    <div class="panel-header">▼ فروش — SELL</div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>قیمت</th><th>مقدار</th><th>ارزش</th></tr></thead>
+        <tbody id="sellTable"><tr><td colspan="3" class="empty">در انتظار داده...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const HUB_URL = 'http://localhost:25814/OrderHub';
+const DELTA   = { ADD: 1, REMOVE: 2, UPDATE: 3 };
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const state = {
+  buys:  new Map(),   // price → record
+  sells: new Map(),
+  ready: false        // true after first snapshot received
+};
+
+// ── Number formatting ─────────────────────────────────────────────────────────
+function fmt(n) {
+  const num = Number(n);
+  return num % 1 === 0
+    ? num.toLocaleString('en')
+    : num.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 8 });
+}
+
+// ── Status bar ────────────────────────────────────────────────────────────────
+function setStatus(type, text) {
+  document.getElementById('dot').className = 'dot ' + type;
+  document.getElementById('statusText').textContent = text;
+}
+function touchTimestamp() {
+  document.getElementById('lastUpdate').textContent =
+    'بروزرسانی: ' + new Date().toLocaleTimeString('fa');
+}
+
+// ── Table render (full) ───────────────────────────────────────────────────────
+function renderTable(tbodyId, map, descending) {
+  const tbody = document.getElementById(tbodyId);
+  const cls   = descending ? 'buy-row' : 'sell-row';
+  const rows  = [...map.values()].sort((a, b) => descending ? b.p - a.p : a.p - b.p);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty">بدون داده</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => `
+    <tr class="${cls}" id="row-${tbodyId}-${r.p}">
+      <td class="price">${fmt(r.p)}</td>
+      <td>${fmt(r.a)}</td>
+      <td>${fmt(r.v)}</td>
+    </tr>`).join('');
+  touchTimestamp();
+}
+
+// ── Flash animation ───────────────────────────────────────────────────────────
+function flash(tbodyId, price, cls) {
+  const row = document.getElementById(`row-${tbodyId}-${price}`);
+  if (!row) return;
+  row.classList.remove('flash-add', 'flash-remove', 'flash-update');
+  void row.offsetWidth;               // force reflow
+  row.classList.add(cls);
+}
+
+// ── Delta apply ───────────────────────────────────────────────────────────────
+function applyDelta(map, tbodyId, record, deltaType, descending) {
+  const p = record.p;
+
+  if (deltaType === DELTA.ADD) {
+    map.set(p, record);
+    renderTable(tbodyId, map, descending);
+    flash(tbodyId, p, 'flash-add');
+
+  } else if (deltaType === DELTA.REMOVE) {
+    map.delete(p);
+    renderTable(tbodyId, map, descending);
+
+  } else if (deltaType === DELTA.UPDATE && map.has(p)) {
+    map.set(p, record);
+    // price unchanged → update cells in-place without full re-render
+    const row = document.getElementById(`row-${tbodyId}-${p}`);
+    if (row) {
+      row.cells[1].textContent = fmt(record.a);
+      row.cells[2].textContent = fmt(record.v);
+      flash(tbodyId, p, 'flash-update');
+      touchTimestamp();
+    } else {
+      renderTable(tbodyId, map, descending);
+    }
+  }
+}
+
+// ── Hash (Web Crypto API — matches server SHA256[..8].ToUpper) ────────────────
+async function computeHash(map) {
+  const input = [...map.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([k, v]) => `${k}:${v.i}`)
+    .join(',');
+  const buf  = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input));
+  return [...new Uint8Array(buf)]
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 8)
+    .toUpperCase();
+}
+
+// ── SignalR ───────────────────────────────────────────────────────────────────
+const hub = new signalR.HubConnectionBuilder()
+  .withUrl(HUB_URL)
+  .withAutomaticReconnect([500, 1000, 2000, 5000, 10000])
+  .configureLogging(signalR.LogLevel.Warning)
+  .build();
+
+// Snapshot — replaces everything, enables delta processing
+hub.on('GetBuysSnapshot', records => {
+  state.buys.clear();
+  records.forEach(r => state.buys.set(r.p, r));
+  state.ready = true;
+  renderTable('buyTable', state.buys, true);
+  console.log('[snapshot] buys:', records.length, 'rows');
+});
+
+hub.on('GetSellsSnapshot', records => {
+  state.sells.clear();
+  records.forEach(r => state.sells.set(r.p, r));
+  renderTable('sellTable', state.sells, false);
+  console.log('[snapshot] sells:', records.length, 'rows');
+});
+
+// Delta — only process after snapshot
+hub.on('GetBuys', (record, deltaType) => {
+  if (!state.ready) return;
+  applyDelta(state.buys, 'buyTable', record, deltaType, true);
+});
+
+hub.on('GetSells', (record, deltaType) => {
+  if (!state.ready) return;
+  applyDelta(state.sells, 'sellTable', record, deltaType, false);
+});
+
+// Heartbeat — verify hash, re-sync on mismatch
+hub.on('Heartbeat', async msg => {
+  if (!state.ready) return;
+  // msg.orderType: lower value = Buy, higher = Sell (based on server enum order)
+  const map = (msg.orderType === 0 || msg.orderType === 1) ? state.buys : state.sells;
+  const hash = await computeHash(map);
+  if (hash !== msg.hash) {
+    console.warn('[heartbeat] hash mismatch! requesting snapshot...', { local: hash, server: msg.hash });
+    hub.invoke('GetSnapshot').catch(() => {});
+  }
+});
+
+// Reconnect — clear state, wait for fresh snapshot
+hub.onreconnecting(() => {
+  state.ready = false;
+  setStatus('connecting', 'در حال اتصال مجدد...');
+});
+hub.onreconnected(() => {
+  setStatus('connected', 'متصل');
+  subscribe();
+});
+hub.onclose(() => setStatus('disconnected', 'اتصال قطع شد'));
+
+function subscribe() {
+  const extype = parseInt(document.getElementById('extype').value, 10);
+  state.ready = false;
+  state.buys.clear();
+  state.sells.clear();
+  renderTable('buyTable',  state.buys,  true);
+  renderTable('sellTable', state.sells, false);
+  hub.invoke('Switch', extype).catch(e => console.error('Switch error:', e));
+  console.log('[hub] Switch →', extype);
+}
+
+async function start() {
+  setStatus('connecting', 'در حال اتصال...');
+  try {
+    await hub.start();
+    setStatus('connected', 'متصل');
+    subscribe();
+  } catch (e) {
+    setStatus('disconnected', 'خطا: ' + e.message);
+    setTimeout(start, 3000);
+  }
+}
+
+start();
+
+document.getElementById('extype').addEventListener('change', () => {
+  if (hub.state === signalR.HubConnectionState.Connected) subscribe();
+});
+</script>
+</body>
+</html>
