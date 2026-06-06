@@ -13,8 +13,6 @@ namespace ArzPayaBroadcast.Core.Order.Hubs
 
         public OrderHub(Worker worker) => _worker = worker;
 
-        // Client calls Switch after connecting to declare which exchange it wants.
-        // Snapshot is sent immediately so client starts from a valid state.
         public async Task Switch(int extype)
         {
             try
@@ -30,18 +28,14 @@ namespace ArzPayaBroadcast.Core.Order.Hubs
                     }
                     con.ExchangeType = extype;
                 }
-                $"{id} switched to exchange {extype}".ConsoleWriteLine(ConsoleColor.Yellow);
+                Log($"Switch  {Short(id)} → exchange {extype} | total: {Worker.Connections.Count}", ConsoleColor.Yellow);
 
                 await _worker.SendSnapshotAsync(id, Utility.GetEnum<EnmExChangeType>(extype));
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            catch (Exception ex) { Log($"Switch error: {ex.Message}", ConsoleColor.Red); }
         }
 
-        // Client calls this when it detects a heartbeat hash mismatch.
-        // Forces a fresh snapshot to recover from missed deltas.
+        // Client calls this on heartbeat hash mismatch to re-sync
         public async Task GetSnapshot()
         {
             try
@@ -53,12 +47,12 @@ namespace ArzPayaBroadcast.Core.Order.Hubs
                     con = Worker.Connections.FirstOrDefault(c => c.ConnectionId == id);
                 }
                 if (con != null)
+                {
+                    Log($"GetSnapshot {Short(id)} (hash mismatch)", ConsoleColor.DarkYellow);
                     await _worker.SendSnapshotAsync(id, Utility.GetEnum<EnmExChangeType>(con.ExchangeType));
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            catch (Exception ex) { Log($"GetSnapshot error: {ex.Message}", ConsoleColor.Red); }
         }
 
         public override Task OnConnectedAsync()
@@ -67,6 +61,7 @@ namespace ArzPayaBroadcast.Core.Order.Hubs
             {
                 Worker.Connections.Add(new Connection { ConnectionId = Context.ConnectionId });
             }
+            Log($"Connect  {Short(Context.ConnectionId)} | total: {Worker.Connections.Count}", ConsoleColor.Cyan);
             return base.OnConnectedAsync();
         }
 
@@ -78,7 +73,14 @@ namespace ArzPayaBroadcast.Core.Order.Hubs
                 var con = Worker.Connections.FirstOrDefault(c => c.ConnectionId == id);
                 if (con != null) Worker.Connections.Remove(con);
             }
+            var reason = exception?.Message ?? "clean";
+            Log($"Disconn  {Short(id)} ({reason}) | remaining: {Worker.Connections.Count}", ConsoleColor.DarkCyan);
             return base.OnDisconnectedAsync(exception);
         }
+
+        static void Log(string msg, ConsoleColor color)
+            => $"[{DateTime.Now:HH:mm:ss.fff}] Hub    | {msg}".ConsoleWriteLine(color);
+
+        static string Short(string id) => id.Length > 8 ? id[..8] + "…" : id;
     }
 }

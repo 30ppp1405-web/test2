@@ -34,6 +34,10 @@ namespace ArzPayaBroadcast.Core.Order
         private int _tickCount = 0;
         private const int HeartbeatEvery = 50;
 
+        // Status log every 300 ticks × 100ms = 30 seconds
+        private int _statusCount = 0;
+        private const int StatusEvery = 300;
+
         public Worker(IHubContext<OrderHub> orderHub) => _orderHub = orderHub;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -50,7 +54,6 @@ namespace ArzPayaBroadcast.Core.Order
 
                     if (currentVersion > _lastDbVersion)
                     {
-                        // Run all exchange types concurrently
                         await Task.WhenAll(Utility.GetExChangeTypes().SelectMany(exType => new Task[]
                         {
                             ProcessOrderAsync(exType, EnmOrderType.Buy),
@@ -65,44 +68,56 @@ namespace ArzPayaBroadcast.Core.Order
                         _tickCount = 0;
                         await BroadcastHeartbeatsAsync();
                     }
+
+                    if (++_statusCount >= StatusEvery)
+                    {
+                        _statusCount = 0;
+                        Log($"alive | DB v{_lastDbVersion} | connections: {Connections.Count}", ConsoleColor.DarkCyan);
+                    }
                 }
                 catch (OperationCanceledException) { break; }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+                catch (Exception ex) { Log($"loop error: {ex.Message}", ConsoleColor.Red); }
             }
+
+            Log("Worker stopped.", ConsoleColor.Yellow);
         }
 
-        // Seed cache and DataPrice on startup; each exchange type is isolated so one failure
-        // doesn't kill the whole worker.
         async Task InitializeAsync()
         {
             try
             {
-                "Worker initializing...".ConsoleWriteLine(ConsoleColor.Cyan);
+                Log("initializing...", ConsoleColor.Cyan);
                 _lastDbVersion = GetCurrentDbVersion();
+                Log($"DB Change Tracking version: {_lastDbVersion}", ConsoleColor.DarkGray);
 
                 foreach (var exType in Utility.GetExChangeTypes())
                 {
-                    exType.GetEnumTitleLatin().ConsoleWriteLine(ConsoleColor.Gray);
+                    Log($"loading [{exType.GetEnumTitleLatin()}]", ConsoleColor.Gray);
 
                     foreach (var ot in new[] { EnmOrderType.Buy, EnmOrderType.Sell })
                     {
-                        try { SetCache((exType, ot), QueryTop25(exType, ot).ToDictionary(o => o.p)); }
+                        try
+                        {
+                            var rows = QueryTop25(exType, ot);
+                            SetCache((exType, ot), rows.ToDictionary(o => o.p));
+                            Log($"  {ot,-4} → {rows.Count} price levels loaded", ConsoleColor.DarkGray);
+                        }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Init cache error [{exType} {ot}]: {ex.Message}");
+                            Log($"  {ot,-4} → cache error: {ex.Message}", ConsoleColor.Red);
                             SetCache((exType, ot), new Dictionary<decimal, OrderItemCustom>());
                         }
                     }
 
-                    // Populate DataPrice immediately so HTTP endpoints don't throw before first tick
+                    // Populate DataPrice now so HTTP endpoints work before first loop tick
                     await ProcessPriceAsync(exType);
                 }
 
-                "Worker initialized.".ConsoleWriteLine(ConsoleColor.Green);
+                Log($"initialized. Watching {Utility.GetExChangeTypes().Count()} exchange type(s).", ConsoleColor.Green);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Worker init failed: {ex}");
+                Log($"init failed: {ex}", ConsoleColor.Red);
             }
         }
 
@@ -112,25 +127,34 @@ namespace ArzPayaBroadcast.Core.Order
             var newDict = QueryTop25(exType, orderType).ToDictionary(o => o.p);
             var oldDict = GetCache(key);
 
+            var adds    = newDict.Values.Where(o => !oldDict.ContainsKey(o.p)).ToList();
+            var removes = oldDict.Values.Where(o => !newDict.ContainsKey(o.p)).ToList();
+            var updates = newDict.Values.Where(o => oldDict.ContainsKey(o.p) && oldDict[o.p].i != o.i).ToList();
+
             var conns = GetConnections(exType);
+
+            if (adds.Count + removes.Count + updates.Count > 0)
+            {
+                var tag   = $"[{exType.GetEnumTitleLatin()} {orderType,-4}]";
+                var color = orderType == EnmOrderType.Buy ? ConsoleColor.Green : ConsoleColor.Magenta;
+                Log($"{tag} +{adds.Count} add  -{removes.Count} rem  ~{updates.Count} upd  → {conns.Count} client(s)", color);
+            }
             if (conns.Count > 0)
             {
                 var methodName = orderType == EnmOrderType.Buy ? "GetBuys" : "GetSells";
                 var tasks = new List<Task>();
 
-                // New price level appeared in top-25
-                foreach (var o in newDict.Values.Where(o => !oldDict.ContainsKey(o.p)))
+                foreach (var o in adds)
                     tasks.Add(_orderHub.Clients.Clients(conns).SendAsync(methodName, o, (int)OrderDeltaType.Add));
 
-                // Price level disappeared from top-25
-                foreach (var o in oldDict.Values.Where(o => !newDict.ContainsKey(o.p)))
+                foreach (var o in removes)
                     tasks.Add(_orderHub.Clients.Clients(conns).SendAsync(methodName, o, (int)OrderDeltaType.Remove));
 
-                // Same price level but amount/value changed (checksum differs, no re-sort needed)
-                foreach (var o in newDict.Values.Where(o => oldDict.ContainsKey(o.p) && oldDict[o.p].i != o.i))
+                foreach (var o in updates)
                     tasks.Add(_orderHub.Clients.Clients(conns).SendAsync(methodName, o, (int)OrderDeltaType.Update));
 
-                await Task.WhenAll(tasks);
+                if (tasks.Count > 0)
+                    await Task.WhenAll(tasks);
             }
 
             SetCache(key, newDict);
@@ -186,9 +210,9 @@ namespace ArzPayaBroadcast.Core.Order
             }
         }
 
-        // Called from OrderHub.OnConnectedAsync — sends full current state to one client
         public async Task SendSnapshotAsync(string connectionId, EnmExChangeType exType)
         {
+            Log($"snapshot → {connectionId[..8]}… [{exType.GetEnumTitleLatin()}]", ConsoleColor.Yellow);
             foreach (var ot in new[] { EnmOrderType.Buy, EnmOrderType.Sell })
             {
                 var methodName = ot == EnmOrderType.Buy ? "GetBuysSnapshot" : "GetSellsSnapshot";
@@ -196,6 +220,7 @@ namespace ArzPayaBroadcast.Core.Order
                     .OrderBy(o => ot == EnmOrderType.Sell ? o.p : -o.p)
                     .ToList();
                 await _orderHub.Clients.Client(connectionId).SendAsync(methodName, snapshot);
+                Log($"  {ot,-4} snapshot sent: {snapshot.Count} rows", ConsoleColor.DarkYellow);
             }
         }
 
@@ -256,11 +281,13 @@ namespace ArzPayaBroadcast.Core.Order
             finally { _lock.ExitWriteLock(); }
         }
 
-        // Hash of price keys + checksums — client uses this to detect missed deltas
         static string ComputeHash(Dictionary<decimal, OrderItemCustom> data)
         {
             var input = string.Join(",", data.Keys.OrderBy(k => k).Select(k => $"{k}:{data[k].i}"));
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input)))[..8];
         }
+
+        static void Log(string msg, ConsoleColor color)
+            => $"[{DateTime.Now:HH:mm:ss.fff}] Worker | {msg}".ConsoleWriteLine(color);
     }
 }
