@@ -71,13 +71,39 @@ namespace ArzPayaBroadcast.Core.Order
             }
         }
 
-        // Seed cache and version on startup so we don't broadcast stale deltas
+        // Seed cache and DataPrice on startup; each exchange type is isolated so one failure
+        // doesn't kill the whole worker.
         async Task InitializeAsync()
         {
-            _lastDbVersion = GetCurrentDbVersion();
-            foreach (var exType in Utility.GetExChangeTypes())
-                foreach (var ot in new[] { EnmOrderType.Buy, EnmOrderType.Sell })
-                    SetCache((exType, ot), QueryTop25(exType, ot).ToDictionary(o => o.p));
+            try
+            {
+                "Worker initializing...".ConsoleWriteLine(ConsoleColor.Cyan);
+                _lastDbVersion = GetCurrentDbVersion();
+
+                foreach (var exType in Utility.GetExChangeTypes())
+                {
+                    exType.GetEnumTitleLatin().ConsoleWriteLine(ConsoleColor.Gray);
+
+                    foreach (var ot in new[] { EnmOrderType.Buy, EnmOrderType.Sell })
+                    {
+                        try { SetCache((exType, ot), QueryTop25(exType, ot).ToDictionary(o => o.p)); }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Init cache error [{exType} {ot}]: {ex.Message}");
+                            SetCache((exType, ot), new Dictionary<decimal, OrderItemCustom>());
+                        }
+                    }
+
+                    // Populate DataPrice immediately so HTTP endpoints don't throw before first tick
+                    await ProcessPriceAsync(exType);
+                }
+
+                "Worker initialized.".ConsoleWriteLine(ConsoleColor.Green);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Worker init failed: {ex}");
+            }
         }
 
         async Task ProcessOrderAsync(EnmExChangeType exType, EnmOrderType orderType)

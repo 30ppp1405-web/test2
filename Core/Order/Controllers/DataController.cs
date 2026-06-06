@@ -31,7 +31,11 @@ namespace ArzPayaBroadcast.Core.Order.Controllers
         public JsonResult bestprice(int id)
         {
             var result = new BestPrice();
-            try { result = Worker.DataPrice[Utility.GetEnum<EnmExChangeType>(id)]; }
+            try
+            {
+                Worker.DataPrice.TryGetValue(Utility.GetEnum<EnmExChangeType>(id), out result);
+                result ??= new BestPrice();
+            }
             catch (Exception ex) { ex.ToString().ConsoleWriteLine(ConsoleColor.Red); }
             return new JsonResult(result);
         }
