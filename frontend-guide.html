@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>راهنمای پیاده‌سازی فرانت — Live Order Book با Quasar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --green: #2ea043;
+      --blue: #388bfd;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: Segoe UI, Tahoma, sans-serif;
+      font-size: 15px;
+      line-height: 1.8;
+      direction: rtl;
+    }
+
+    /* ── Layout ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    nav {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 24px 0;
+    }
+    nav .nav-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 0 20px 12px;
+    }
+    nav a {
+      display: block;
+      padding: 6px 20px;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      border-right: 2px solid transparent;
+      transition: all .2s;
+    }
+    nav a:hover { color: var(--text); border-right-color: var(--blue); }
+    nav a.step-link { font-weight: 600; color: var(--text); }
+    nav a.sub-link { padding-right: 32px; font-size: 12px; }
+
+    main { flex: 1; max-width: 860px; padding: 40px 48px; }
+
+    /* ── Header ── */
+    .doc-header { margin-bottom: 48px; border-bottom: 1px solid var(--border); padding-bottom: 32px; }
+    .doc-header h1 { font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .doc-header p { color: var(--muted); font-size: 14px; }
+    .badge-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .badge {
+      font-size: 11px; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; border: 1px solid;
+    }
+    .badge-blue   { border-color: var(--blue);   color: var(--blue);   background: #0d1f3c; }
+    .badge-green  { border-color: var(--green);  color: var(--green);  background: #0d2b0d; }
+    .badge-purple { border-color: var(--purple); color: var(--purple); background: #1a0d2b; }
+
+    /* ── Steps ── */
+    .step {
+      margin-bottom: 56px;
+      scroll-margin-top: 24px;
+    }
+    .step-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 20px;
+    }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--blue); color: #fff;
+      font-weight: 700; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-num.green  { background: var(--green); }
+    .step-num.purple { background: var(--purple); }
+    .step-num.yellow { background: var(--yellow); }
+    .step-num.red    { background: var(--red); }
+    h2 { font-size: 20px; font-weight: 700; }
+    h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin: 24px 0 8px; }
+
+    p { color: #c9d1d9; margin-bottom: 12px; }
+
+    /* ── Code blocks ── */
+    .code-block { position: relative; margin: 16px 0; border-radius: var(--radius); overflow: hidden; }
+    .code-label {
+      background: var(--bg3); color: var(--muted);
+      font-size: 11px; font-weight: 600;
+      padding: 6px 14px;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: .5px;
+    }
+    pre { margin: 0 !important; border-radius: 0 !important; }
+    pre code { font-size: 13px !important; font-family: 'Consolas', 'Courier New', monospace !important; }
+
+    /* ── Boxes ── */
+    .box {
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      margin: 16px 0;
+      border-right: 4px solid;
+      font-size: 14px;
+    }
+    .box-info    { background: #0d1f3c; border-color: var(--blue);   color: #a5c8ff; }
+    .box-warn    { background: #1f1a0d; border-color: var(--yellow); color: #f0c674; }
+    .box-danger  { background: #1f0d0d; border-color: var(--red);    color: #ff9492; }
+    .box-success { background: #0d2b0d; border-color: var(--green);  color: #7ee787; }
+    .box strong  { font-weight: 700; }
+    .box code    { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 4px; font-family: monospace; }
+
+    /* ── Inline code ── */
+    code {
+      background: var(--bg3); border: 1px solid var(--border);
+      padding: 1px 6px; border-radius: 4px;
+      font-family: monospace; font-size: 13px; color: #e6edf3;
+    }
+    pre code { background: none !important; border: none !important; padding: 0 !important; }
+
+    /* ── Table ── */
+    .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    .data-table th {
+      background: var(--bg3); padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted); font-weight: 600; text-align: right;
+    }
+    .data-table td { padding: 8px 14px; border-bottom: 1px solid var(--bg3); }
+    .data-table tr:last-child td { border-bottom: none; }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; padding: 0; margin: 16px 0; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--bg3);
+      font-size: 14px; color: #c9d1d9;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .check-box {
+      width: 18px; height: 18px; border: 1.5px solid var(--border);
+      border-radius: 4px; flex-shrink: 0; margin-top: 2px;
+    }
+
+    /* ── Flow diagram ── */
+    .flow {
+      display: flex; align-items: center; gap: 0;
+      margin: 20px 0; flex-wrap: wrap;
+    }
+    .flow-item {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 8px 14px;
+      font-size: 13px; font-weight: 600;
+    }
+    .flow-arrow {
+      color: var(--muted); font-size: 20px;
+      padding: 0 8px;
+    }
+    .flow-item.green  { border-color: var(--green);  color: var(--green); }
+    .flow-item.blue   { border-color: var(--blue);   color: var(--blue); }
+    .flow-item.yellow { border-color: var(--yellow); color: var(--yellow); }
+    .flow-item.red    { border-color: var(--red);    color: var(--red); }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ═══════════════════════════════ NAV ═══════════════════════════════ -->
+<nav>
+  <div class="nav-title">فهرست مطالب</div>
+  <a href="#intro" class="step-link">معرفی و معماری</a>
+  <a href="#messages" class="sub-link">پیام‌های SignalR</a>
+  <a href="#rules" class="sub-link">قوانین کلیدی</a>
+  <a href="#step1" class="step-link">۱ — نصب پیش‌نیازها</a>
+  <a href="#step2" class="step-link">۲ — ساخت Composable</a>
+  <a href="#composable-config" class="sub-link">تنظیمات</a>
+  <a href="#composable-state" class="sub-link">مدیریت State</a>
+  <a href="#composable-delta" class="sub-link">Delta Apply</a>
+  <a href="#composable-hub" class="sub-link">SignalR Connection</a>
+  <a href="#step3" class="step-link">۳ — ساخت View</a>
+  <a href="#view-template" class="sub-link">Template</a>
+  <a href="#view-script" class="sub-link">Script Setup</a>
+  <a href="#view-style" class="sub-link">Styles</a>
+  <a href="#step4" class="step-link">۴ — ثبت در Router</a>
+  <a href="#step5" class="step-link">۵ — نکات مهم</a>
+  <a href="#checklist" class="step-link">چک‌لیست نهایی</a>
+</nav>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<main>
+
+<!-- ── Header ── -->
+<div class="doc-header">
+  <h1>راهنمای پیاده‌سازی فرانت</h1>
+  <p>Live Order Book با SignalR و Quasar (Vue 3)</p>
+  <div class="badge-row">
+    <span class="badge badge-blue">Quasar 2.x</span>
+    <span class="badge badge-green">Vue 3 Composition API</span>
+    <span class="badge badge-purple">@microsoft/signalr</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     INTRO
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="intro">
+  <div class="step-header">
+    <div class="step-num" style="background:var(--purple)">i</div>
+    <h2>معرفی و معماری کلی</h2>
+  </div>
+
+  <p>
+    این سیستم داده‌های لحظه‌ای سفارش‌ها (Order Book) را از سرور از طریق
+    <strong>SignalR</strong> دریافت می‌کند. سرور تغییرات را به صورت <strong>delta</strong>
+    می‌فرستد تا ترافیک شبکه به حداقل برسد.
+  </p>
+
+  <div class="flow">
+    <div class="flow-item blue">SQL Server</div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-item green">Background Worker</div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-item yellow">SignalR Hub</div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-item red">Quasar View</div>
+  </div>
+
+  <h3 id="messages">پیام‌های دریافتی از Hub</h3>
+  <table class="data-table">
+    <thead><tr><th>نام متد</th><th>پارامترها</th><th>توضیح</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>GetBuysSnapshot</code></td>
+        <td><code>records[]</code></td>
+        <td>لیست کامل سفارش‌های خرید — فقط یک‌بار بعد از اتصال</td>
+      </tr>
+      <tr>
+        <td><code>GetSellsSnapshot</code></td>
+        <td><code>records[]</code></td>
+        <td>لیست کامل سفارش‌های فروش — فقط یک‌بار بعد از اتصال</td>
+      </tr>
+      <tr>
+        <td><code>GetBuys</code></td>
+        <td><code>record, deltaType</code></td>
+        <td>تغییر در سفارش‌های خرید (بعد از snapshot)</td>
+      </tr>
+      <tr>
+        <td><code>GetSells</code></td>
+        <td><code>record, deltaType</code></td>
+        <td>تغییر در سفارش‌های فروش (بعد از snapshot)</td>
+      </tr>
+      <tr>
+        <td><code>Heartbeat</code></td>
+        <td><code>{exchange, orderType, hash}</code></td>
+        <td>هر ۵ ثانیه — برای تشخیص از دست رفتن پیام</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>ساختار record</h3>
+  <table class="data-table">
+    <thead><tr><th>فیلد</th><th>نوع</th><th>توضیح</th></tr></thead>
+    <tbody>
+      <tr><td><code>i</code></td><td>number</td><td>checksum ردیف (برای تشخیص تغییر)</td></tr>
+      <tr><td><code>p</code></td><td>decimal</td><td>قیمت — کلید اصلی</td></tr>
+      <tr><td><code>a</code></td><td>decimal</td><td>مجموع مقدار در این سطح قیمتی</td></tr>
+      <tr><td><code>v</code></td><td>decimal</td><td>مجموع ارزش در این سطح قیمتی</td></tr>
+      <tr><td><code>e</code></td><td>number</td><td>نوع بازار (exchange type)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>مقادیر deltaType</h3>
+  <table class="data-table">
+    <thead><tr><th>مقدار</th><th>نام</th><th>اقدام در فرانت</th></tr></thead>
+    <tbody>
+      <tr><td><code>1</code></td><td>Add</td><td>ردیف جدید به جدول اضافه کن + re-sort بر اساس قیمت</td></tr>
+      <tr><td><code>2</code></td><td>Remove</td><td>ردیف را از جدول حذف کن</td></tr>
+      <tr><td><code>3</code></td><td>Update</td><td>فقط مقدار <code>a</code> و <code>v</code> را بروزرسانی کن — <strong>نیازی به re-sort نیست</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="rules">قوانین کلیدی</h3>
+  <div class="box box-danger">
+    <strong>⚠ قانون اول:</strong> هرگز Delta را بدون داشتن Snapshot معتبر اعمال نکن.
+    تا زمانی که <code>GetBuysSnapshot</code> و <code>GetSellsSnapshot</code> دریافت نشده، پیام‌های
+    <code>GetBuys</code> و <code>GetSells</code> را نادیده بگیر.
+  </div>
+  <div class="box box-warn">
+    <strong>⚠ قانون دوم:</strong> بعد از هر قطعی (reconnect)، state را پاک کن و منتظر Snapshot جدید بمان.
+    هرگز state قدیمی را با delta جدید merge نکن.
+  </div>
+  <div class="box box-info">
+    <strong>ℹ قانون سوم:</strong> در نوع Update، قیمت تغییر نکرده — فقط مقدار و ارزش عوض شده.
+    جدول را re-sort نکن تا flickering نداشته باشیم.
+  </div>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     STEP 1
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="step1">
+  <div class="step-header">
+    <div class="step-num">۱</div>
+    <h2>نصب پیش‌نیازها</h2>
+  </div>
+
+  <p>در پوشه پروژه Quasar خود این دستور را اجرا کن:</p>
+
+  <div class="code-block">
+    <div class="code-label">TERMINAL</div>
+    <pre><code class="language-bash">npm install @microsoft/signalr</code></pre>
+  </div>
+
+  <p>سپس مطمئن شو که در <code>quasar.config.js</code> تنظیمات CORS مشکلی نداشته باشد.</p>
+
+  <div class="box box-warn">
+    <strong>نکته CORS:</strong> سرور SignalR باید Origin فرانت را مجاز کرده باشد.
+    در <code>Startup.cs</code> سرور، <code>SetIsOriginAllowed(_ => true)</code> تنظیم شده که همه Origin‌ها را می‌پذیرد.
+    در محیط Production این را محدود کن.
+  </div>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     STEP 2
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="step2">
+  <div class="step-header">
+    <div class="step-num green">۲</div>
+    <h2>ساخت Composable: useOrderBook.js</h2>
+  </div>
+
+  <p>
+    تمام منطق SignalR را در یک composable جداگانه بنویس تا View تمیز بماند.
+    فایل را در مسیر <code>src/composables/useOrderBook.js</code> بساز.
+  </p>
+
+  <h3 id="composable-config">بخش ۱ — تنظیمات و ثابت‌ها</h3>
+  <div class="code-block">
+    <div class="code-label">src/composables/useOrderBook.js — بخش ۱</div>
+    <pre><code class="language-javascript">import { ref, computed, onUnmounted } from 'vue'
+import * as signalR from '@microsoft/signalr'
+
+// ── آدرس Hub را اینجا تنظیم کن ─────────────────────────────────────────
+const HUB_URL = 'http://localhost:25814/OrderHub'
+
+// ── مقادیر enum سمت سرور ──────────────────────────────────────────────
+// این مقادیر باید با EnmOrderType در سرور تطابق داشته باشند
+// برای یافتن مقادیر صحیح: console.log(msg.orderType) را در Heartbeat اجرا کن
+const ORDER_TYPE = {
+  BUY: 0,   // ← مقدار EnmOrderType.Buy.GetEnumValue() را اینجا بگذار
+  SELL: 1   // ← مقدار EnmOrderType.Sell.GetEnumValue() را اینجا بگذار
+}
+
+const DELTA = { ADD: 1, REMOVE: 2, UPDATE: 3 }</code></pre>
+  </div>
+
+  <div class="box box-warn">
+    <strong>مهم — ORDER_TYPE:</strong> مقادیر <code>BUY</code> و <code>SELL</code> باید با مقادیر
+    <code>GetEnumValue()</code> در سرور یکی باشند. اگر مطمئن نیستی، در Heartbeat handler یک
+    <code>console.log(msg)</code> اضافه کن تا مقدار واقعی را ببینی.
+  </div>
+
+  <h3 id="composable-state">بخش ۲ — State و Flash</h3>
+  <div class="code-block">
+    <div class="code-label">src/composables/useOrderBook.js — بخش ۲</div>
+    <pre><code class="language-javascript">export function useOrderBook () {
+
+  // ── State اصلی ────────────────────────────────────────────────────────
+  // کلید Map = price (عدد اعشاری)، مقدار = record
+  const _buys  = ref(new Map())
+  const _sells = ref(new Map())
+
+  // true بعد از دریافت اولین Snapshot — تا آن موقع delta اعمال نمی‌شود
+  const ready  = ref(false)
+
+  // وضعیت اتصال: 'connecting' | 'connected' | 'disconnected'
+  const status = ref('disconnected')
+
+  // Flash animations: کلید = 'buy-{price}' یا 'sell-{price}'، مقدار = 'add' | 'update'
+  const flashes = ref({})
+
+  // نوع بازار فعال (extype) — برای re-subscribe بعد از reconnect
+  let currentExtype = 1
+  let hub = null
+
+  // ── Computed rows (مرتب‌شده برای نمایش) ─────────────────────────────
+  // خرید: بالاترین قیمت اول
+  const buyRows = computed(() =>
+    [..._buys.value.values()].sort((a, b) => b.p - a.p)
+  )
+
+  // فروش: پایین‌ترین قیمت اول
+  const sellRows = computed(() =>
+    [..._sells.value.values()].sort((a, b) => a.p - b.p)
+  )
+
+  // ── Flash helpers ────────────────────────────────────────────────────
+  function setFlash (side, price, type) {
+    flashes.value = { ...flashes.value, [`${side}-${price}`]: type }
+    // انیمیشن ۶۰۰ms طول می‌کشد
+    setTimeout(() => {
+      const f = { ...flashes.value }
+      delete f[`${side}-${price}`]
+      flashes.value = f
+    }, 600)
+  }
+
+  function getFlash (side, price) {
+    return flashes.value[`${side}-${price}`] || null
+  }</code></pre>
+  </div>
+
+  <h3 id="composable-delta">بخش ۳ — Delta Apply و Hash</h3>
+  <div class="code-block">
+    <div class="code-label">src/composables/useOrderBook.js — بخش ۳</div>
+    <pre><code class="language-javascript">  // ── اعمال تغییرات روی Map ────────────────────────────────────────────
+  function applyDelta (mapRef, side, record, deltaType) {
+    // کپی Map برای trigger کردن reactivity در Vue
+    const map = new Map(mapRef.value)
+
+    if (deltaType === DELTA.ADD) {
+      // قیمت جدید وارد top-25 شد
+      map.set(record.p, record)
+      mapRef.value = map
+      setFlash(side, record.p, 'add')
+
+    } else if (deltaType === DELTA.REMOVE) {
+      // قیمت از top-25 خارج شد
+      map.delete(record.p)
+      mapRef.value = map
+      // flash لازم نیست، ردیف حذف می‌شود
+
+    } else if (deltaType === DELTA.UPDATE) {
+      // قیمت همان است، فقط مقدار/ارزش عوض شده
+      // نکته: re-sort نمی‌کنیم چون قیمت (کلید مرتب‌سازی) تغییر نکرده
+      if (map.has(record.p)) {
+        map.set(record.p, record)
+        mapRef.value = map
+        setFlash(side, record.p, 'update')
+      }
+    }
+  }
+
+  // ── Hash Verification (Web Crypto API) ───────────────────────────────
+  // الگوریتم باید دقیقاً با ComputeHash() سمت سرور تطابق داشته باشد:
+  // input = "{price}:{checksum},{price}:{checksum},..." مرتب‌شده بر اساس price
+  async function computeHash (map) {
+    const input = [...map.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([k, v]) => `${k}:${v.i}`)
+      .join(',')
+    const buf = await crypto.subtle.digest(
+      'SHA-256', new TextEncoder().encode(input))
+    return [...new Uint8Array(buf)]
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('').slice(0, 8).toUpperCase()
+  }</code></pre>
+  </div>
+
+  <h3 id="composable-hub">بخش ۴ — اتصال SignalR</h3>
+  <div class="code-block">
+    <div class="code-label">src/composables/useOrderBook.js — بخش ۴</div>
+    <pre><code class="language-javascript">  // ── Subscribe به یک نوع بازار ────────────────────────────────────────
+  // این متد را بعد از start() و هر بار که کاربر نوع بازار را عوض کرد صدا بزن
+  function subscribe (extype) {
+    currentExtype  = extype
+    ready.value    = false
+    _buys.value    = new Map()
+    _sells.value   = new Map()
+    hub?.invoke('Switch', extype).catch(console.error)
+  }
+
+  // ── برقراری اتصال ────────────────────────────────────────────────────
+  async function start () {
+    hub = new signalR.HubConnectionBuilder()
+      .withUrl(HUB_URL)
+      .withAutomaticReconnect([500, 1000, 2000, 5000, 10000])
+      .configureLogging(signalR.LogLevel.Warning)
+      .build()
+
+    // ── Snapshot handlers ─────────────────────────────────────────────
+    // جایگزینی کامل state — اولین پیام پس از اتصال
+    hub.on('GetBuysSnapshot', records => {
+      const map = new Map()
+      records.forEach(r => map.set(r.p, r))
+      _buys.value = map
+      ready.value = true   // از اینجا به بعد delta اعمال می‌شود
+    })
+
+    hub.on('GetSellsSnapshot', records => {
+      const map = new Map()
+      records.forEach(r => map.set(r.p, r))
+      _sells.value = map
+    })
+
+    // ── Delta handlers ────────────────────────────────────────────────
+    // فقط بعد از دریافت Snapshot معتبر اعمال می‌شوند
+    hub.on('GetBuys', (record, deltaType) => {
+      if (!ready.value) return
+      applyDelta(_buys, 'buy', record, deltaType)
+    })
+
+    hub.on('GetSells', (record, deltaType) => {
+      if (!ready.value) return
+      applyDelta(_sells, 'sell', record, deltaType)
+    })
+
+    // ── Heartbeat ─────────────────────────────────────────────────────
+    // هر ۵ ثانیه: hash جدول خود را با سرور مقایسه کن
+    // اگر مغایرت داشت: درخواست Snapshot جدید بده
+    hub.on('Heartbeat', async msg => {
+      if (!ready.value) return
+      const map  = msg.orderType === ORDER_TYPE.BUY ? _buys.value : _sells.value
+      const hash = await computeHash(map)
+      if (hash !== msg.hash) {
+        console.warn('[orderbook] hash mismatch — requesting snapshot')
+        hub.invoke('GetSnapshot').catch(() => {})
+      }
+    })
+
+    // ── Connection events ─────────────────────────────────────────────
+    hub.onreconnecting(() => {
+      status.value = 'connecting'
+      ready.value  = false
+      // state را پاک نمی‌کنیم تا UI خالی نشود، ولی delta قبول نمی‌کنیم
+    })
+
+    hub.onreconnected(() => {
+      status.value = 'connected'
+      // state پاک و Snapshot جدید درخواست می‌شود
+      subscribe(currentExtype)
+    })
+
+    hub.onclose(() => {
+      status.value = 'disconnected'
+    })
+
+    // ── شروع اتصال ───────────────────────────────────────────────────
+    try {
+      status.value = 'connecting'
+      await hub.start()
+      status.value = 'connected'
+    } catch (e) {
+      status.value = 'disconnected'
+      throw e   // به کامپوننت فرستاده می‌شود تا نمایش خطا بدهد
+    }
+  }
+
+  function stop () {
+    hub?.stop()
+  }
+
+  // وقتی کامپوننت از DOM خارج شد، اتصال را ببند
+  onUnmounted(stop)
+
+  return {
+    buyRows, sellRows,
+    status, ready, flashes,
+    getFlash, subscribe, start, stop
+  }
+}</code></pre>
+  </div>
+
+  <div class="box box-success">
+    <strong>فایل کامل شد.</strong> composable هیچ وابستگی به UI ندارد.
+    می‌توان آن را در هر View دیگری نیز استفاده کرد.
+  </div>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     STEP 3
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="step3">
+  <div class="step-header">
+    <div class="step-num yellow">۳</div>
+    <h2>ساخت View: OrderBookPage.vue</h2>
+  </div>
+
+  <p>فایل را در مسیر <code>src/pages/OrderBookPage.vue</code> بساز.</p>
+
+  <h3 id="view-template">بخش ۱ — Template</h3>
+  <div class="code-block">
+    <div class="code-label">src/pages/OrderBookPage.vue — &lt;template&gt;</div>
+    <pre><code class="language-html">&lt;template&gt;
+  &lt;q-page class="orderbook-page"&gt;
+
+    &lt;!-- ── نوار بالا ── --&gt;
+    &lt;div class="ob-header"&gt;
+
+      &lt;!-- نشانگر وضعیت اتصال --&gt;
+      &lt;div class="ob-status"&gt;
+        &lt;q-badge :color="statusColor" rounded /&gt;
+        &lt;span class="q-ml-xs ob-status-text"&gt;{{ statusText }}&lt;/span&gt;
+      &lt;/div&gt;
+
+      &lt;!-- انتخاب نوع بازار --&gt;
+      &lt;q-select
+        v-model="selectedExtype"
+        :options="extypeOptions"
+        dense outlined dark
+        label="نوع بازار"
+        style="min-width: 120px"
+        @update:model-value="onExtypeChange"
+      /&gt;
+
+      &lt;!-- زمان آخرین بروزرسانی --&gt;
+      &lt;span class="ob-timestamp q-mr-auto"&gt;
+        {{ lastUpdate ? 'بروزرسانی: ' + lastUpdate : '' }}
+      &lt;/span&gt;
+
+    &lt;/div&gt;
+
+    &lt;!-- ── در حال بارگذاری ── --&gt;
+    &lt;div v-if="!ready" class="ob-loading"&gt;
+      &lt;q-spinner-dots color="primary" size="40px" /&gt;
+      &lt;span class="q-mt-sm"&gt;در انتظار داده...&lt;/span&gt;
+    &lt;/div&gt;
+
+    &lt;!-- ── دو جدول کنار هم ── --&gt;
+    &lt;div v-else class="ob-tables"&gt;
+
+      &lt;!-- جدول خرید --&gt;
+      &lt;div class="ob-panel ob-buys"&gt;
+        &lt;div class="ob-panel-title text-positive"&gt;▲ خرید (BUY)&lt;/div&gt;
+        &lt;div class="ob-scroll"&gt;
+          &lt;q-markup-table flat dense class="ob-table"&gt;
+            &lt;thead&gt;
+              &lt;tr&gt;
+                &lt;th class="text-right"&gt;قیمت&lt;/th&gt;
+                &lt;th class="text-right"&gt;مقدار&lt;/th&gt;
+                &lt;th class="text-right"&gt;ارزش&lt;/th&gt;
+              &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr
+                v-for="row in buyRows"
+                :key="row.p"
+                :class="['ob-buy-row', getRowClass('buy', row.p)]"
+              &gt;
+                &lt;td class="ob-price"&gt;{{ fmt(row.p) }}&lt;/td&gt;
+                &lt;td&gt;{{ fmt(row.a) }}&lt;/td&gt;
+                &lt;td&gt;{{ fmt(row.v) }}&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr v-if="!buyRows.length"&gt;
+                &lt;td colspan="3" class="text-center text-grey"&gt;بدون داده&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/q-markup-table&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+      &lt;q-separator vertical dark /&gt;
+
+      &lt;!-- جدول فروش --&gt;
+      &lt;div class="ob-panel ob-sells"&gt;
+        &lt;div class="ob-panel-title text-negative"&gt;▼ فروش (SELL)&lt;/div&gt;
+        &lt;div class="ob-scroll"&gt;
+          &lt;q-markup-table flat dense class="ob-table"&gt;
+            &lt;thead&gt;
+              &lt;tr&gt;
+                &lt;th class="text-right"&gt;قیمت&lt;/th&gt;
+                &lt;th class="text-right"&gt;مقدار&lt;/th&gt;
+                &lt;th class="text-right"&gt;ارزش&lt;/th&gt;
+              &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+              &lt;tr
+                v-for="row in sellRows"
+                :key="row.p"
+                :class="['ob-sell-row', getRowClass('sell', row.p)]"
+              &gt;
+                &lt;td class="ob-price"&gt;{{ fmt(row.p) }}&lt;/td&gt;
+                &lt;td&gt;{{ fmt(row.a) }}&lt;/td&gt;
+                &lt;td&gt;{{ fmt(row.v) }}&lt;/td&gt;
+              &lt;/tr&gt;
+              &lt;tr v-if="!sellRows.length"&gt;
+                &lt;td colspan="3" class="text-center text-grey"&gt;بدون داده&lt;/td&gt;
+              &lt;/tr&gt;
+            &lt;/tbody&gt;
+          &lt;/q-markup-table&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+  &lt;/q-page&gt;
+&lt;/template&gt;</code></pre>
+  </div>
+
+  <h3 id="view-script">بخش ۲ — Script Setup</h3>
+  <div class="code-block">
+    <div class="code-label">src/pages/OrderBookPage.vue — &lt;script setup&gt;</div>
+    <pre><code class="language-javascript">&lt;script setup&gt;
+import { ref, computed, onMounted } from 'vue'
+import { useOrderBook } from 'src/composables/useOrderBook'
+
+const {
+  buyRows, sellRows,
+  status, ready, getFlash,
+  subscribe, start
+} = useOrderBook()
+
+// ── انتخاب نوع بازار ────────────────────────────────────────────────────
+const selectedExtype = ref(7)          // مقدار پیش‌فرض
+const extypeOptions  = [1, 2, 3, 7]   // لیست بازارهای موجود
+
+function onExtypeChange (val) {
+  lastUpdate.value = null
+  subscribe(val)
+}
+
+// ── زمان آخرین بروزرسانی ───────────────────────────────────────────────
+const lastUpdate = ref(null)
+
+// هر بار که buyRows یا sellRows تغییر کرد، timestamp را بروزرسانی کن
+// (این watcher فقط زمانی که ready=true فعال است)
+import { watch } from 'vue'
+watch([buyRows, sellRows], () => {
+  if (ready.value) {
+    lastUpdate.value = new Date().toLocaleTimeString('fa')
+  }
+})
+
+// ── وضعیت اتصال ────────────────────────────────────────────────────────
+const statusColor = computed(() => ({
+  connected:    'positive',
+  connecting:   'warning',
+  disconnected: 'negative'
+}[status.value]))
+
+const statusText = computed(() => ({
+  connected:    'متصل',
+  connecting:   'در حال اتصال...',
+  disconnected: 'قطع شده'
+}[status.value]))
+
+// ── Flash class برای row ────────────────────────────────────────────────
+function getRowClass (side, price) {
+  const f = getFlash(side, price)
+  if (f === 'add')    return 'ob-flash-add'
+  if (f === 'update') return 'ob-flash-update'
+  return ''
+}
+
+// ── فرمت عدد ────────────────────────────────────────────────────────────
+function fmt (n) {
+  const num = Number(n)
+  return num % 1 === 0
+    ? num.toLocaleString('en')
+    : num.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 8 })
+}
+
+// ── شروع اتصال در mount ─────────────────────────────────────────────────
+onMounted(async () => {
+  try {
+    await start()
+    subscribe(selectedExtype.value)
+  } catch (e) {
+    console.error('[OrderBook] Failed to connect:', e)
+  }
+})
+&lt;/script&gt;</code></pre>
+  </div>
+
+  <h3 id="view-style">بخش ۳ — Styles</h3>
+  <div class="code-block">
+    <div class="code-label">src/pages/OrderBookPage.vue — &lt;style scoped lang="scss"&gt;</div>
+    <pre><code class="language-scss">&lt;style scoped lang="scss"&gt;
+.orderbook-page {
+  background: #0d1117;
+  color: #e6edf3;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 50px); // ارتفاع منهای header اپلیکیشن
+}
+
+// ── نوار بالا ────────────────────────────────────────────────────────────
+.ob-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.ob-status { display: flex; align-items: center; }
+.ob-status-text { font-size: 12px; color: #7d8590; }
+.ob-timestamp { font-size: 11px; color: #7d8590; }
+
+// ── حالت لودینگ ──────────────────────────────────────────────────────────
+.ob-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #7d8590;
+  gap: 8px;
+}
+
+// ── Container دو جدول ───────────────────────────────────────────────────
+.ob-tables {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+// ── Panel ────────────────────────────────────────────────────────────────
+.ob-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ob-panel-title {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.ob-buys  .ob-panel-title { background: #0d1f0d; border-bottom: 1px solid #2ea043; }
+.ob-sells .ob-panel-title { background: #1f0d0d; border-bottom: 1px solid #f85149; }
+
+.ob-scroll { overflow-y: auto; flex: 1; }
+
+// ── جدول ─────────────────────────────────────────────────────────────────
+.ob-table {
+  background: #0d1117 !important;
+  width: 100%;
+}
+
+// رنگ ردیف‌ها
+.ob-buy-row  td { color: #2ea043 !important; }
+.ob-sell-row td { color: #f85149 !important; }
+
+.ob-price { font-weight: bold !important; }
+
+// ── انیمیشن Flash ────────────────────────────────────────────────────────
+@keyframes ob-flash-add {
+  0%   { background: rgba(46,  160, 67,  0.35); }
+  100% { background: transparent; }
+}
+@keyframes ob-flash-update {
+  0%   { background: rgba(210, 153, 34,  0.35); }
+  100% { background: transparent; }
+}
+
+.ob-flash-add    { animation: ob-flash-add    0.6s ease-out; }
+.ob-flash-update { animation: ob-flash-update 0.6s ease-out; }
+&lt;/style&gt;</code></pre>
+  </div>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     STEP 4
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="step4">
+  <div class="step-header">
+    <div class="step-num red">۴</div>
+    <h2>ثبت Route در Router</h2>
+  </div>
+
+  <p>در فایل <code>src/router/routes.js</code> مسیر جدید را اضافه کن:</p>
+
+  <div class="code-block">
+    <div class="code-label">src/router/routes.js</div>
+    <pre><code class="language-javascript">const routes = [
+  {
+    path: '/',
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      // ... مسیرهای موجود ...
+      {
+        path: 'orderbook',
+        component: () => import('pages/OrderBookPage.vue')
+      }
+    ]
+  }
+]</code></pre>
+  </div>
+
+  <p>حالا از آدرس <code>/orderbook</code> می‌توانی صفحه را ببینی.</p>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     STEP 5
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="step5">
+  <div class="step-header">
+    <div class="step-num" style="background:var(--muted)">!</div>
+    <h2>نکات مهم</h2>
+  </div>
+
+  <h3>ORDER_TYPE را تأیید کن</h3>
+  <p>مقادیر enum سمت سرور را باید از تیم بکند بگیری یا با این روش پیدا کنی:</p>
+  <div class="code-block">
+    <div class="code-label">تشخیص مقدار ORDER_TYPE</div>
+    <pre><code class="language-javascript">// موقتاً در Heartbeat handler این را اضافه کن:
+hub.on('Heartbeat', async msg => {
+  console.log('Heartbeat received:', msg)
+  // خروجی مثال: { exchange: 7, orderType: 0, hash: "A1B2C3D4" }
+  // عدد orderType را یادداشت کن برای Buy و Sell
+})</code></pre>
+  </div>
+
+  <h3>عملکرد در حجم بالا</h3>
+  <div class="box box-info">
+    <strong>ℹ نکته Performance:</strong>
+    در نوع <code>UPDATE</code>، Vue به خاطر <code>computed</code> فقط ردیف‌های تغییر یافته را re-render می‌کند.
+    برای ۲۵ ردیف این کاملاً بهینه است. اگر در آینده تعداد ردیف‌ها زیاد شد، از
+    <code>v-memo</code> یا <code>VirtualScroll</code> استفاده کن.
+  </div>
+
+  <h3>خطای CORS در مرورگر</h3>
+  <div class="box box-warn">
+    <strong>⚠</strong> اگر در Console مرورگر خطای <code>CORS</code> دیدی:
+    <br><br>
+    ۱. مطمئن شو سرور در حال اجرا است<br>
+    ۲. بررسی کن که <code>AllowCredentials()</code> در Startup سرور وجود داشته باشد<br>
+    ۳. اگر از <code>vite dev server</code> استفاده می‌کنی، proxy تنظیم کن:
+  </div>
+  <div class="code-block">
+    <div class="code-label">quasar.config.js — proxy برای حل CORS در development</div>
+    <pre><code class="language-javascript">devServer: {
+  proxy: {
+    '/OrderHub': {
+      target: 'http://localhost:25814',
+      ws: true,       // ← مهم: برای WebSocket
+      changeOrigin: true
+    }
+  }
+}</code></pre>
+  </div>
+  <p>اگر proxy استفاده کردی، <code>HUB_URL</code> در composable را به <code>'/OrderHub'</code> تغییر بده.</p>
+
+  <h3>قطع و وصل شدن</h3>
+  <div class="box box-info">
+    <strong>جریان Reconnect:</strong><br><br>
+    ۱. Hub قطع می‌شود → <code>onreconnecting</code> → <code>ready = false</code><br>
+    ۲. دیگر delta اعمال نمی‌شود<br>
+    ۳. UI همان داده قبلی را نشان می‌دهد (نه خالی)<br>
+    ۴. اتصال برقرار می‌شود → <code>onreconnected</code> → <code>subscribe()</code><br>
+    ۵. سرور Snapshot کامل می‌فرستد → state جایگزین می‌شود → <code>ready = true</code>
+  </div>
+
+  <h3>Quasar Dark Mode</h3>
+  <p>اگر پروژه از Dark Mode استفاده می‌کند، در <code>quasar.config.js</code> اطمینان حاصل کن:</p>
+  <div class="code-block">
+    <div class="code-label">quasar.config.js</div>
+    <pre><code class="language-javascript">framework: {
+  config: {
+    dark: true  // یا 'auto'
+  }
+}</code></pre>
+  </div>
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     CHECKLIST
+══════════════════════════════════════════════════════════════════════ -->
+<div class="step" id="checklist">
+  <div class="step-header">
+    <div class="step-num green">✓</div>
+    <h2>چک‌لیست نهایی</h2>
+  </div>
+  <p>قبل از تحویل، همه این موارد را بررسی کن:</p>
+
+  <ul class="checklist">
+    <li><div class="check-box"></div><span><code>npm install @microsoft/signalr</code> اجرا شده</span></li>
+    <li><div class="check-box"></div><span>فایل <code>src/composables/useOrderBook.js</code> ساخته شده</span></li>
+    <li><div class="check-box"></div><span>فایل <code>src/pages/OrderBookPage.vue</code> ساخته شده</span></li>
+    <li><div class="check-box"></div><span>Route در <code>src/router/routes.js</code> ثبت شده</span></li>
+    <li><div class="check-box"></div><span>مقادیر <code>ORDER_TYPE.BUY</code> و <code>ORDER_TYPE.SELL</code> با سرور تطابق دارند</span></li>
+    <li><div class="check-box"></div><span>آدرس <code>HUB_URL</code> صحیح است</span></li>
+    <li><div class="check-box"></div><span>در Console مرورگر خطای CORS وجود ندارد</span></li>
+    <li><div class="check-box"></div><span>بعد از باز شدن صفحه، Snapshot دریافت و جدول پر می‌شود</span></li>
+    <li><div class="check-box"></div><span>تغییرات لحظه‌ای با انیمیشن نمایش داده می‌شوند</span></li>
+    <li><div class="check-box"></div><span>بعد از قطع و وصل شدن، داده‌ها دوباره صحیح نمایش داده می‌شوند</span></li>
+    <li><div class="check-box"></div><span>در Console پیام‌های Heartbeat hash mismatch وجود ندارد (نشانه صحت sync)</span></li>
+    <li><div class="check-box"></div><span>تغییر dropdown نوع بازار، جدول را بدون خطا به‌روز می‌کند</span></li>
+  </ul>
+</div>
+
+<hr>
+<div style="color:var(--muted); font-size:12px; text-align:center; padding: 24px 0;">
+  راهنمای پیاده‌سازی Live Order Book — Quasar + SignalR
+</div>
+
+</main>
+</div>
+</body>
+</html>
